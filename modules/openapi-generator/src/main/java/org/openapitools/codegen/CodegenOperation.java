@@ -22,6 +22,8 @@ import io.swagger.v3.oas.models.tags.Tag;
 
 import java.util.*;
 
+import org.apitest.scenarios.codegen.TestScenario;
+
 public class CodegenOperation {
     public final List<CodegenProperty> responseHeaders = new ArrayList<CodegenProperty>();
     public boolean hasAuthMethods, hasConsumes, hasProduces, hasParams, hasOptionalParams, hasRequiredParams,
@@ -52,6 +54,9 @@ public class CodegenOperation {
     public List<CodegenParameter> optionalParams = new ArrayList<CodegenParameter>();
     public List<CodegenParameter> requiredAndNotNullableParams = new ArrayList<CodegenParameter>();
     public List<CodegenParameter> notNullableParams = new ArrayList<CodegenParameter>();
+    public List<CodegenParameter> primitiveParams = new ArrayList<CodegenParameter>();
+    public List<CodegenParameter> nonPrimitivesParams = new ArrayList<CodegenParameter>();
+    
     public List<CodegenSecurity> authMethods;
     public List<Tag> tags;
     public List<CodegenResponse> responses = new ArrayList<CodegenResponse>();
@@ -66,7 +71,8 @@ public class CodegenOperation {
     public String operationIdLowerCase; // for markdown documentation
     public String operationIdCamelCase; // for class names
     public String operationIdSnakeCase;
-
+    public List<TestScenario> scenarios;
+    
     /**
      * Check if there's at least one parameter
      *
@@ -306,8 +312,18 @@ public class CodegenOperation {
     public boolean isRestful() {
         return isRestfulIndex() || isRestfulShow() || isRestfulCreate() || isRestfulUpdate() || isRestfulDestroy();
     }
+    
+    
 
-    /**
+    public List<TestScenario> getScenarios() {
+		return scenarios;
+	}
+
+	public void setScenarios(List<TestScenario> scenarios) {
+		this.scenarios = scenarios;
+	}
+
+	/**
      * Get the substring except baseName from path
      *
      * @return the substring

@@ -33,6 +33,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.comparator.PathFileComparator;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apitest.scenarios.codegen.APITestScenario;
+import org.apitest.scenarios.codegen.TestScenario;
 import org.openapitools.codegen.api.TemplateDefinition;
 import org.openapitools.codegen.api.TemplatePathLocator;
 import org.openapitools.codegen.api.TemplateProcessor;
@@ -715,39 +717,138 @@ public class DefaultGenerator implements Generator {
                 }
 
                 // to generate api test files
+//                for (String templateName : config.apiTestTemplateFiles().keySet()) {
+//                    String filename = config.apiTestFilename(templateName, tag);
+//                    File apiTestFile = new File(filename);
+//                    // do not overwrite test file that already exists
+//                    if (apiTestFile.exists()) {
+//                        this.templateProcessor.skip(apiTestFile.toPath(), "Test files never overwrite an existing file of the same name.");
+//                    } else {
+//                        File written = processTemplateToFile(operation, templateName, filename, generateApiTests, CodegenConstants.API_TESTS, config.apiTestFileFolder());
+//                        if (written != null) {
+//                            files.add(written);
+//                            if (config.isEnablePostProcessFile() && !dryRun) {
+//                                config.postProcessFile(written, "api-test");
+//                            }
+//                        }
+//                    }
+//                }
+                
+                
+                // generate api test cases based on individual operation in the path
                 for (String templateName : config.apiTestTemplateFiles().keySet()) {
-                    String filename = config.apiTestFilename(templateName, tag);
-                    File apiTestFile = new File(filename);
-                    // do not overwrite test file that already exists
-                    if (apiTestFile.exists()) {
-                        this.templateProcessor.skip(apiTestFile.toPath(), "Test files never overwrite an existing file of the same name.");
-                    } else {
-                        File written = processTemplateToFile(operation, templateName, filename, generateApiTests, CodegenConstants.API_TESTS, config.apiTestFileFolder());
-                        if (written != null) {
-                            files.add(written);
-                            if (config.isEnablePostProcessFile() && !dryRun) {
-                                config.postProcessFile(written, "api-test");
-                            }
-                        }
-                    }
-                }
+                	String templateDataStr = Json.mapper().writeValueAsString(operation);
+                	OperationsMap templateData = Json.mapper().readValue(templateDataStr, OperationsMap.class);
+                	Map<String, OperationMap> operationMap = new HashMap<>();
+                	
+                	// create map of operation with all the methods
+                	for(CodegenOperation op : ops) {
+						String method = op.httpMethod.toLowerCase();
+						if(operationMap.containsKey(method)) {
+							OperationMap map = operationMap.get(method);
+						    map.getOperation().add(op);
+						}else {
+							OperationMap objs = new OperationMap();
+	                        objs.setClassname(config.toApiName(tag));
+	                        objs.setPathPrefix(config.toApiVarName(tag));
+	                    	objs.setOperation(op);
+							List<CodegenOperation> list = new ArrayList<CodegenOperation>();
+							list.add(op);
+							objs.setOperation(list);
+							operationMap.put(method, objs);
+						}
+                	}
+                	
+                	for(String method : operationMap.keySet()) {
+                		OperationMap objs = operationMap.get(method);
+                        
+                    	templateData.setOperation(objs);
+                    	templateData.put("package", config.apiPackage());
 
-                // to generate api documentation files
-                for (String templateName : config.apiDocTemplateFiles().keySet()) {
-                    String filename = config.apiDocFilename(templateName, tag);
-                    File written = processTemplateToFile(operation, templateName, filename, generateApiDocumentation, CodegenConstants.API_DOCS);
-                    if (written != null) {
-                        files.add(written);
-                        if (config.isEnablePostProcessFile() && !dryRun) {
-                            config.postProcessFile(written, "api-doc");
+                		Set<String> allImports = new ConcurrentSkipListSet<>();
+
+                    	for(CodegenOperation op : objs.getOperation()) {
+                            allImports.addAll(op.imports);
+                    	}
+                        
+                        Map<String, String> mappings = getAllImportsMappings(allImports);
+                        Set<Map<String, String>> imports = toImportsObjects(mappings);
+
+                        //Some codegen implementations rely on a list interface for the imports
+                        templateData.setImports(new ArrayList<>(imports));
+
+                        // add a flag to indicate whether there's any {{import}}
+                        if (!imports.isEmpty()) {
+                        	templateData.put("hasImport", true);
                         }
-                    }
+
+                        config.postProcessOperationsWithModels(templateData, allModels);
+                        String filename = config.apiTestFilenameBasedOnOperation(templateName, tag, method);
+                        File apiTestFile = new File(filename);
+                        // do not overwrite test file that already exists
+                        if (apiTestFile.exists()) {
+                            this.templateProcessor.skip(apiTestFile.toPath(), "Test files never overwrite an existing file of the same name.");
+                        } else {
+                            File written = processTemplateToFile(templateData, templateName, filename, generateApiTests, CodegenConstants.API_TESTS, config.apiTestFileFolder());
+                            if (written != null) {
+                                files.add(written);
+                                if (config.isEnablePostProcessFile() && !dryRun) {
+                                    config.postProcessFile(written, "api-test");
+                                }
+                            }
+                            
+                        }
+                	}
+                    
                 }
 
             } catch (Exception e) {
-                throw new RuntimeException("Could not generate api file for '" + tag + "'", e);
+            	LOGGER.error("Could not generate api file for  {}", e);                
+            	throw new RuntimeException("Could not generate api file for '" + tag + "'", e);
             }
         }
+        
+        OperationsMap allOperationsMap = new OperationsMap();
+        OperationMap allOperationMap = new OperationMap();
+        allOperationMap.setOperation(new ArrayList<>());
+        allOperationsMap.setOperation(allOperationMap);
+        
+        for(OperationsMap map : allOperations) {
+        	allOperationsMap.getOperations().getOperation().addAll(map.getOperations().getOperation());
+        }
+        
+        // generate api test data 
+        String testDataFileName = config.getOutputDir() + File.separator + "data.ts";
+        File testDataWritten;
+		try {
+			testDataWritten = processTemplateToFile(allOperationsMap, "data.mustache", testDataFileName, generateApiTests, CodegenConstants.API_TESTS, config.getOutputDir());
+			if (testDataWritten != null) {
+	            files.add(testDataWritten);
+	            if (config.isEnablePostProcessFile() && !dryRun) {
+	                config.postProcessFile(testDataWritten, "api-test");
+	            }
+	        }
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+        
+		// generate api test data will all params 
+        String testDataWithAllParamsFileName = config.getOutputDir() + File.separator + "dataWithAllParams.ts";
+        File testDataWithAllParamsWritten;
+		try {
+			testDataWithAllParamsWritten = processTemplateToFile(allOperationsMap, "dataWithAllParams.mustache", testDataWithAllParamsFileName, generateApiTests, CodegenConstants.API_TESTS, config.getOutputDir());
+			if (testDataWithAllParamsWritten != null) {
+	            files.add(testDataWithAllParamsWritten);
+	            if (config.isEnablePostProcessFile() && !dryRun) {
+	                config.postProcessFile(testDataWithAllParamsWritten, "api-test");
+	            }
+	        }
+		} catch (Exception e) {
+			LOGGER.error("Error occured while writing file {}", e);
+			e.printStackTrace();
+		}
+		
         if (GlobalSettings.getProperty("debugOperations") != null) {
             LOGGER.info("############ Operation info ############");
             Json.prettyPrint(allOperations);
@@ -1495,7 +1596,7 @@ public class DefaultGenerator implements Generator {
                 CodegenOperation codegenOperation = config.fromOperation(resourcePath, httpMethod, operation, path.getServers());
                 codegenOperation.tags = new ArrayList<>(tags);
                 config.addOperationToGroup(config.sanitizeTag(tag.getName()), resourcePath, operation, codegenOperation, operations);
-
+                
                 List<SecurityRequirement> securities = operation.getSecurity();
                 if (securities != null && securities.isEmpty()) {
                     continue;
@@ -1516,7 +1617,18 @@ public class DefaultGenerator implements Generator {
                         codegenOperation.hasAuthMethods = true;
                     }
                 }
+                
+                try {
+                	LOGGER.info("####### UPDATING TEST SCEANARIONS FOR OPERATION {} ####", codegenOperation.summary);
+                    APITestScenario ts = new APITestScenario(this.config);
+                    //ts.generateTestScenariosBasedOnAllParams(codegenOperation);
+                    ts.generateAPITestScenariosBasedOnRule(codegenOperation);
+                    LOGGER.info("####### TOTAL TEST SCEANARIONS FOR OPERATION {} ####", codegenOperation.scenarios.size());
 
+                }catch (Exception e){
+                	LOGGER.error("Error occured while generating test scenarios for operation {} {}", codegenOperation.summary, e);
+                }
+                
             } catch (Exception ex) {
                 String msg = "Could not process operation:\n" //
                         + "  Tag: " + tag + "\n"//

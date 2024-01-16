@@ -1,0 +1,25 @@
+import * as fs from 'fs';
+
+export const TestData = {
+{{#operations}}
+{{#operation}}
+    "{{{operationId}}}" : {
+        "scenarios" : {
+            {{#scenarios}}
+            "{{-index}}": {
+                "isValid": {{valid}},
+                "summary" : "{{{scenario}}}",
+                "parameters" : {
+                    {{#parameters.0}}
+                    {{#parameters}}
+                    "{{{baseName}}}" : {{{example}}}, 
+                    {{/parameters}}
+                    {{/parameters.0}}
+                },
+            },
+        {{/scenarios}}
+        }
+    },
+{{/operation}}
+{{/operations}}
+}

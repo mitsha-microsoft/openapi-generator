@@ -28,6 +28,7 @@ public class GeneratorInput {
     private Map<String, String> options;
     private String openAPIUrl;
     private AuthorizationValue authorizationValue;
+    private Map<String, Object> configuration; // custom configuration
 
     public AuthorizationValue getAuthorizationValue() {
         return authorizationValue;
@@ -61,4 +62,14 @@ public class GeneratorInput {
     public void setOpenAPIUrl(String url) {
         this.openAPIUrl = url;
     }
+    
+    // getter
+    public Map<String, Object> getConfiguration() {
+		return configuration;
+	}
+
+	// setter
+	public void setConfiguration(Map<String, Object> configuration) {
+		this.configuration = configuration;
+	}
 }

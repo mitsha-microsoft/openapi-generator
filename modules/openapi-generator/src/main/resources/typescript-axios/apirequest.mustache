@@ -1,0 +1,17 @@
+import { test, expect } from '@playwright/test';
+import { createRequestFunction } from '../../common';
+
+{{#operations}}
+{{#operation}}
+// {{summary}}
+test.describe('{{operationId}}', function() {    
+{{#scenarios}}
+    test('{{scenario}}', async () => {
+        let response = await createRequestFunction('{{operationId}}', '{{-index}}');
+        expect(response.status).toBe({{expectedOutcome.statusCode}});
+    });
+{{/scenarios}}
+});
+{{/operation}}
+
+{{/operations}}

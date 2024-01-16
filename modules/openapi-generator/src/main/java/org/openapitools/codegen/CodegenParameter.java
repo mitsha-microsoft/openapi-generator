@@ -24,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apitest.scenarios.rules.codegen.PrimitiveInvalidExample;
+import org.apitest.scenarios.rules.codegen.PrimitiveValidExample;
+
 import io.swagger.v3.oas.models.examples.Example;
 
 /**
@@ -65,7 +68,11 @@ public class CodegenParameter implements IJsonSchemaValidationProperties {
     private CodegenProperty schema;
     private boolean additionalPropertiesIsAnyType;
     private boolean hasVars;
-
+    public List<Object> validValues;
+    public List<Object> invalidValues;
+    public PrimitiveValidExample primitiveValidExample;
+    public PrimitiveInvalidExample primitiveInvalidExample;
+    
     /**
      * Determines whether this parameter is mandatory. If the parameter is in "path",
      * this property is required and its value MUST be true. Otherwise, the property
@@ -203,6 +210,20 @@ public class CodegenParameter implements IJsonSchemaValidationProperties {
         if (this._enum != null) {
             output._enum = new ArrayList<String>(this._enum);
         }
+        if (this.validValues != null) {
+            output.validValues = new ArrayList<Object>(this.validValues);
+        }
+        if (this.invalidValues != null) {
+            output.invalidValues = new ArrayList<Object>(this.invalidValues);
+        }
+        
+		if (this.primitiveInvalidExample != null) {
+			output.primitiveInvalidExample = this.primitiveInvalidExample.copy();
+		}
+		
+        if(this.primitiveValidExample != null) {
+        	output.primitiveValidExample = this.primitiveValidExample.copy();
+        }
         if (this.allowableValues != null) {
             output.allowableValues = new HashMap<String, Object>(this.allowableValues);
         }
@@ -259,7 +280,7 @@ public class CodegenParameter implements IJsonSchemaValidationProperties {
         output.isMatrix = this.isMatrix;
         output.isAllowEmptyValue = this.isAllowEmptyValue;
         output.contentType = this.contentType;
-
+        
         return output;
     }
 
@@ -1102,5 +1123,7 @@ public class CodegenParameter implements IJsonSchemaValidationProperties {
     public void setIsEnum(boolean isEnum) {
         this.isEnum = isEnum;
     }
+    
+    
 }
 

@@ -18,6 +18,9 @@
 package org.openapitools.codegen;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.Ticker;
@@ -47,6 +50,12 @@ import io.swagger.v3.parser.util.SchemaTypeUtil;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.text.StringEscapeUtils;
+import org.apitest.scenarios.codegen.APITestScenario;
+import org.apitest.scenarios.codegen.GenerateAIBasedAPITestsScenario;
+import org.apitest.scenarios.codegen.ParameterExampleGenerator;
+import org.apitest.scenarios.codegen.TestScenario;
+import org.apitest.scenarios.rules.codegen.IntegerParameterGenerator;
+import org.apitest.scenarios.rules.codegen.StringParameterGenerator;
 import org.openapitools.codegen.CodegenDiscriminator.MappedModel;
 import org.openapitools.codegen.api.TemplatingEngineAdapter;
 import org.openapitools.codegen.config.GlobalSettings;
@@ -596,7 +605,7 @@ public class DefaultCodegen implements CodegenConfig {
      *
      * @return map from model name to Schema.
      */
-    protected Map<String, Schema> getModelNameToSchemaCache() {
+    public Map<String, Schema> getModelNameToSchemaCache() {
         if (modelNameToSchemaCache == null) {
             // Create a cache to efficiently lookup schema based on model name.
             Map<String, Schema> m = new HashMap<>();
@@ -3607,7 +3616,7 @@ public class DefaultCodegen implements CodegenConfig {
         return descendentSchemas;
     }
 
-    protected CodegenDiscriminator createDiscriminator(String schemaName, Schema schema) {
+    public CodegenDiscriminator createDiscriminator(String schemaName, Schema schema) {
         Discriminator sourceDiscriminator = recursiveGetDiscriminator(schema, new ArrayList<Schema>());
         if (sourceDiscriminator == null) {
             return null;
@@ -4503,13 +4512,23 @@ public class DefaultCodegen implements CodegenConfig {
                                           String httpMethod,
                                           Operation operation,
                                           List<Server> servers) {
-        LOGGER.debug("fromOperation => operation: {}", operation);
+    	ObjectMapper objectMapper = new ObjectMapper();
+    	objectMapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
+    	String opStr = operation.toString();
+    	
+    	
+		/*
+		 * LOGGER.info("Swagger operation {}", opStr);
+		 * LOGGER.debug("fromOperation => operation: {}", operation);
+		 */
         if (operation == null)
             throw new RuntimeException("operation cannot be null in fromOperation");
 
         Map<String, Schema> schemas = ModelUtils.getSchemas(this.openAPI);
         CodegenOperation op = CodegenModelFactory.newInstance(CodegenModelType.OPERATION);
+        
         Set<String> imports = new HashSet<>();
+        
         if (operation.getExtensions() != null && !operation.getExtensions().isEmpty()) {
             op.vendorExtensions.putAll(operation.getExtensions());
 
@@ -4560,7 +4579,6 @@ public class DefaultCodegen implements CodegenConfig {
         if (operation.getDeprecated() != null) {
             op.isDeprecated = operation.getDeprecated();
         }
-
         addConsumesInfo(operation, op);
 
         if (operation.getResponses() != null && !operation.getResponses().isEmpty()) {
@@ -4733,6 +4751,7 @@ public class DefaultCodegen implements CodegenConfig {
                 param = ModelUtils.getReferencedParameter(this.openAPI, param);
 
                 CodegenParameter p = fromParameter(param, imports);
+                
                 p.setContent(getContent(param.getContent(), imports, "RequestParameter" + toModelName(param.getName())));
 
                 // ensure unique params
@@ -4780,7 +4799,7 @@ public class DefaultCodegen implements CodegenConfig {
             }
         }
 
-        // create optional, required parameters
+        // create optional, required parameters, primitive and non primitive
         for (CodegenParameter cp : allParams) {
             if (cp.required) { //required parameters
                 requiredParams.add(cp.copy());
@@ -4796,8 +4815,15 @@ public class DefaultCodegen implements CodegenConfig {
             if (!cp.isNullable) {
                 notNullableParams.add(cp.copy());
             }
+            
+            if(cp.isPrimitiveType) {
+            	op.primitiveParams.add(cp);
+        	}else {
+        		op.nonPrimitivesParams.add(cp);
+        	}
         }
 
+        
         // add imports to operation import tag
         for (String i : imports) {
             if (needToImport(i)) {
@@ -4851,10 +4877,27 @@ public class DefaultCodegen implements CodegenConfig {
         op.isRestfulDestroy = op.isRestfulDestroy();
         op.isRestful = op.isRestful();
 
+        try {
+    		opStr = objectMapper.writeValueAsString(op);
+    		//LOGGER.info("Codegen op {}", opStr);
+    		GenerateAIBasedAPITestsScenario sc = new GenerateAIBasedAPITestsScenario();
+    		//String scenarios = sc.Run(opStr);
+    		//List<TestScenario> scs =  objectMapper.readValue(scenarios, new TypeReference<List<TestScenario>>(){});
+        	//LOGGER.info("Scenarios generated {}", scs.size());
+        	//op.scenarios = scs;
+        	LOGGER.info("All params size {}", allParams.size());
+        	
+    	}catch(Exception e) {
+    		
+    	}
         return op;
     }
 
-    public boolean isParameterNameUnique(CodegenParameter p, List<CodegenParameter> parameters) {
+    public OpenAPI getOpenAPI() {
+		return openAPI;
+	}
+
+	public boolean isParameterNameUnique(CodegenParameter p, List<CodegenParameter> parameters) {
         for (CodegenParameter parameter : parameters) {
             if (System.identityHashCode(p) == System.identityHashCode(parameter)) {
                 continue; // skip itself
@@ -5111,13 +5154,20 @@ public class DefaultCodegen implements CodegenConfig {
             LOGGER.warn("Parameter name not defined properly. Default to UNKNOWN_PARAMETER_NAME");
             codegenParameter.paramName = "UNKNOWN_PARAMETER_NAME";
         }
-
+        LOGGER.info("Updating examples for parameter {}", parameter.getDescription());
         // set the parameter example value
         // should be overridden by lang codegen
         setParameterExampleValue(codegenParameter, parameter);
         // set the parameter examples (if available)
         setParameterExamples(codegenParameter, parameter);
 
+        try {
+        	ParameterExampleGenerator generator = new ParameterExampleGenerator(this);
+            generator.GenerateExample(codegenParameter, parameter.getSchema());
+        }catch (Exception e){
+        	LOGGER.error("Error occured while generating examples {}", e);        
+        }
+        
         postProcessParameter(codegenParameter);
         LOGGER.debug("debugging codegenParameter return: {}", codegenParameter);
     }
@@ -6544,87 +6594,6 @@ public class DefaultCodegen implements CodegenConfig {
         return tag;
     }
 
-    /**
-     * Set CodegenParameter boolean flag using CodegenProperty.
-     * NOTE: This is deprecated and can be removed in 6.0.0
-     * This logic has been folded into the original call sites and long term will be moved into
-     * IJsonSchemaValidationProperties.setTypeProperties and overrides like updateModelForObject
-     *
-     * @param parameter Codegen Parameter
-     * @param property  Codegen property
-     */
-    public void setParameterBooleanFlagWithCodegenProperty(CodegenParameter parameter, CodegenProperty property) {
-        if (parameter == null) {
-            LOGGER.error("Codegen Parameter cannot be null.");
-            return;
-        }
-
-        if (property == null) {
-            LOGGER.error("Codegen Property cannot be null.");
-            return;
-        }
-        if (Boolean.TRUE.equals(property.isEmail) && Boolean.TRUE.equals(property.isString)) {
-            parameter.isEmail = true;
-        } else if (Boolean.TRUE.equals(property.isPassword) && Boolean.TRUE.equals(property.isString)) {
-            parameter.isPassword = true;
-        } else if (Boolean.TRUE.equals(property.isUuid) && Boolean.TRUE.equals(property.isString)) {
-            parameter.isUuid = true;
-        } else if (Boolean.TRUE.equals(property.isByteArray)) {
-            parameter.isByteArray = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isBinary)) {
-            parameter.isBinary = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isString)) {
-            parameter.isString = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isBoolean)) {
-            parameter.isBoolean = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isLong)) {
-            parameter.isLong = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isInteger)) {
-            parameter.isInteger = true;
-            parameter.isPrimitiveType = true;
-            if (Boolean.TRUE.equals(property.isShort)) {
-                parameter.isShort = true;
-            } else if (Boolean.TRUE.equals(property.isUnboundedInteger)) {
-                parameter.isUnboundedInteger = true;
-            }
-        } else if (Boolean.TRUE.equals(property.isDouble)) {
-            parameter.isDouble = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isFloat)) {
-            parameter.isFloat = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isDecimal)) {
-            parameter.isDecimal = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isNumber)) {
-            parameter.isNumber = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isDate)) {
-            parameter.isDate = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isDateTime)) {
-            parameter.isDateTime = true;
-            parameter.isPrimitiveType = true;
-        } else if (Boolean.TRUE.equals(property.isFreeFormObject)) {
-            parameter.isFreeFormObject = true;
-        } else if (Boolean.TRUE.equals(property.isAnyType)) {
-            parameter.isAnyType = true;
-        } else {
-            LOGGER.debug("Property type is not primitive: {}", property.dataType);
-        }
-
-        if (Boolean.TRUE.equals(property.isFile)) {
-            parameter.isFile = true;
-        }
-        if (Boolean.TRUE.equals(property.isModel)) {
-            parameter.isModel = true;
-        }
-    }
 
     /**
      * Update codegen property's enum by adding "enumVars" (with name and value)
@@ -7742,6 +7711,13 @@ public class DefaultCodegen implements CodegenConfig {
         // should be overridden by lang codegen
         setParameterExampleValue(codegenParameter, body);
 
+        try {
+        	ParameterExampleGenerator pg = new ParameterExampleGenerator(this);
+            pg.GenerateExample(codegenParameter, schema);
+        }catch (Exception e){
+        	LOGGER.error("Error occured while generating example for requestbody param {} {}", codegenParameter.baseName, e);
+        }
+        
         // restore original schema with description, extensions etc
         if (original != null) {
             schema = original;
@@ -8456,4 +8432,15 @@ public class DefaultCodegen implements CodegenConfig {
         }
         operation.hasParams = !operation.allParams.isEmpty();
     }
+
+	@Override
+	public String apiTestFilenameBasedOnOperation(String templateName, String tag, String method) {
+		String suffix = apiTestTemplateFiles().get(templateName);
+        return apiTestFileFolder() + File.separator + toApiName(tag) + File.separator + toApiOperationName(tag, method) +  suffix;
+	}
+
+	@Override
+	public String toApiOperationName(String tag, String method) {
+		return tag.toLowerCase() + "." + method.toLowerCase() + ".spec";
+	}
 }

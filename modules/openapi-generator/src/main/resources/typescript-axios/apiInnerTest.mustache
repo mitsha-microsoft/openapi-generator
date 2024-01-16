@@ -1,0 +1,42 @@
+import axios from 'axios';
+import * as fs from 'fs';
+import { test, expect } from '@playwright/test';
+{{#withSeparateModelsAndApi}}
+{{#operations}}
+import { {{classname}} } from './../../{{tsApiPackage}}/{{classFilename}}';
+{{/operations}}
+{{/withSeparateModelsAndApi}}
+import { Configuration, ConfigurationParameters } from '../../configuration';
+import { BASE_PATH } from '../../base';
+
+const configurationParameter : ConfigurationParameters = {
+    basePath: BASE_PATH,   
+}
+
+{{#hasAuthScheme}}
+configurationParameter["accessToken"] = "{{{bearerToken}}}";
+{{/hasAuthScheme}}
+
+const configuration = new Configuration(configurationParameter);
+
+{{#operations}}
+{{#operation}}
+
+test.describe('{{summary}}', function() {    
+{{#scenarios}}
+    test('{{scenario}}', async () => {
+        let apiClient = new {{classname}}(configuration);
+        let response = await apiClient.{{nickname}}(
+            {{#parameters.0}}
+            {{#parameters}}
+            {{#trimLineBreaks}}{{{example}}}{{/trimLineBreaks}}, 
+            {{/parameters}}
+            {{/parameters.0}}
+            undefined);
+        expect(response.status).toBe({{expectedOutcome.statusCode}});
+    });
+{{/scenarios}}
+});
+{{/operation}}
+
+{{/operations}}

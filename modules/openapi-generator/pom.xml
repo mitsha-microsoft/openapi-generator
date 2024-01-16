@@ -442,6 +442,16 @@
             <version>${lombok.version}</version>
             <scope>test</scope>
         </dependency>
+        <dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-ai-openai</artifactId>
+		    <version>1.0.0-beta.6</version>
+		</dependency>
+		<dependency>
+            <groupId>com.github.javafaker</groupId>
+            <artifactId>javafaker</artifactId>
+            <version>1.0.2</version> <!-- Use the latest version available -->
+        </dependency>
     </dependencies>
     <repositories>
         <repository>

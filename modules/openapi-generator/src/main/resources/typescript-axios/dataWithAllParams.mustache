@@ -1,0 +1,239 @@
+import * as fs from 'fs';
+
+export const TestDataWithAllParams = {
+{{#operations}}
+{{#operation}}
+    "{{{operationId}}}" : {
+        "scenarios" : {
+            {{#scenarios}}
+            "{{-index}}": {
+                "isValid": {{valid}},
+                "summary" : "{{{scenario}}}",
+                "path" : "{{path}}",
+                "httpMethod" : "{{httpMethod}}",
+                "auth" : [
+                    {{#authMethods}}
+                    {
+                        {{#isApiKey}}
+                        "isApiKey" : true,
+                        {{#isKeyInHeader}}
+                        "isKeyInHeader" : true,
+                        "keyParamName" : "{{keyParamName}}",
+                        {{/isKeyInHeader}}
+                        {{#isKeyInQuery}}
+                        "isKeyInQuery" : true,
+                        "keyParamName" : "{{keyParamName}}",
+                        {{/isKeyInQuery}}
+                        {{/isApiKey}}
+                        {{#isBasicBasic}}
+                        "isBasicBasic" : true,                        
+                        {{/isBasicBasic}}
+                        {{#isBasicBearer}}
+                        "isBasicBearer" : true,                                                
+                        {{/isBasicBearer}}
+                        {{#isOAuth}}
+                        "isOAuth" : true,
+                        "name" : "{{name}}",
+                        "scopes" : [
+                            {{#scopes}}
+                            "{{{scope}}}"{{^-last}}, {{/-last}}
+                            {{/scopes}}
+                        ]
+                        {{/isOAuth}}
+                    }{{^-last}},{{/-last}}
+                    {{/authMethods}}
+                ],
+                "parameters" : {
+                    "pathParams" : [
+                        {{#pathParams}}
+                        {
+                            "baseName" : "{{baseName}}",
+                        },
+                        {{/pathParams}}
+                    ],
+                    "queryParams" : [
+                        {{#queryParams}}
+                        {
+                            {{#isArray}}
+                            "isArray" : true,
+                            {{#isCollectionFormatMulti}}
+                            "isCollectionFormatMulti" : true,
+                            {{#uniqueItems}}
+                            "uniqueItems" : true,
+                            {{/uniqueItems}}
+                            {{^uniqueItems}}
+                            "uniqueItems" : false,
+                            {{/uniqueItems}}
+                            {{/isCollectionFormatMulti}}
+                            {{^isCollectionFormatMulti}}
+                            "isCollectionFormatMulti" : false,
+                            {{#uniqueItems}}
+                            "uniqueItems" : true,
+                            {{/uniqueItems}}
+                            {{^uniqueItems}}
+                            "uniqueItems" : false,
+                            {{/uniqueItems}}
+                            "collectionFormat" : "{{collectionFormat}}",
+                            {{/isCollectionFormatMulti}}
+                            {{/isArray}}
+                            {{^isArray}}
+                            "isArray" : false,
+                            {{#isDateTime}}
+                            "isDateTime" : true,
+                            {{/isDateTime}}
+                            {{^isDateTime}}
+                            "isDateTime" : false,
+                            {{#isDate}}
+                            "isDate" : true,
+                            {{/isDate}}
+                            {{^isDate}}
+                            "isDate" : false,
+                            {{#isExplode}}
+                            "isExplode" : true,
+                            {{#isPrimitiveType}}
+                            "isPrimitiveType" : true,
+                            {{/isPrimitiveType}}
+                            {{^isPrimitiveType}}
+                            "isPrimitiveType" : false,
+                            {{^isEnumRef}}
+                            "isEnumRef" : false,
+                            {{^isEnum}}
+                            "isEnum" : false,
+                            {{/isEnum}}
+                            {{/isEnumRef}}
+                            {{#isEnum}}
+                            "isEnum" : true,
+                            {{/isEnum}}
+                            {{#isEnumRef}}
+                            "isEnumRef" : true,
+                            {{/isEnumRef}}
+                            {{/isPrimitiveType}}
+                            {{/isExplode}}
+                            {{^isExplode}}
+                            "isExplode" : false,
+                            {{/isExplode}}
+                            {{/isDate}}
+                            {{/isDateTime}}
+                            {{/isArray}}
+                            "baseName" : "{{baseName}}",
+                        },
+                        {{/queryParams}}
+                    ],
+                    "headerParams" : [
+                        {{#headerParams}}
+                        {
+                            {{#isArray}}
+                            "isArray" : true,
+                            "collectionFormat" : "{{collectionFormat}}",
+                            "dataType" : "{{dataType}}",
+                            {{#uniqueItems}}
+                            "uniqueItems" : true,
+                            {{/uniqueItems}}
+                            {{^uniqueItems}}
+                            "uniqueItems" : false,
+                            {{/uniqueItems}}
+                            {{/isArray}}
+                            {{^isArray}}
+                            "isArray" : false,
+                            {{#isString}}
+                            "isString" : true,
+                            {{/isString}}
+                            {{^isString}}
+                            "isString" : false,
+                            {{/isString}}
+                            {{/isArray}}
+                            "baseName" : "{{baseName}}",
+                        },
+                        {{/headerParams}}
+                    ],
+                    "formParams" : [
+                    {{#vendorExtensions}}
+                    {{#formParams}}
+                        {
+                            {{#isArray}}
+                            "isArray" : true,
+                            {{#isCollectionFormatMulti}}
+                            "isCollectionFormatMulti" : true,
+                            {{#multipartFormData}}
+                            "multipartFormData" : true,
+                            {{/multipartFormData}}
+                            {{^multipartFormData}}
+                            "multipartFormData" : false,
+                            {{/multipartFormData}}
+                            {{/isCollectionFormatMulti}}
+                            {{^isCollectionFormatMulti}}
+                            "isCollectionFormatMulti" : false,
+                            {{#multipartFormData}}
+                            "multipartFormData" : true,
+                            {{/multipartFormData}}
+                            {{^multipartFormData}}
+                            "multipartFormData" : false,
+                            {{/multipartFormData}}
+                            {{/isCollectionFormatMulti}}
+                            {{/isArray}}
+                            {{^isArray}}
+                            "isArray" : false,
+                            {{#multipartFormData}}
+                            "multipartFormData" : true,
+                            {{/multipartFormData}}
+                            {{^multipartFormData}}
+                            "multipartFormData" : false,
+                            {{/multipartFormData}}
+                            {{#isPrimitiveType}}
+                            "isPrimitiveType" : true,
+                            {{/isPrimitiveType}}
+                            {{^isPrimitiveType}}
+                            "isPrimitiveType" : false,
+                            {{/isPrimitiveType}}
+                            {{^isEnumRef}}
+                            "isEnumRef" : false,
+                            {{/isEnumRef}}
+                            {{#isEnumRef}}
+                            "isEnumRef" : true,
+                            {{/isEnumRef}}
+                            {{/isArray}}
+                            "baseName" : "{{baseName}}",
+                        },
+                    {{/formParams}}
+                    {{/vendorExtensions}}
+                    ],
+                    {{#vendorExtensions}}
+                    {{#hasFormParams}}
+                    "hasFormParams" : true,
+                    {{^multipartFormData}}
+                    "multipartFormData" : false,
+                    {{/multipartFormData}}
+                    {{#multipartFormData}}
+                    "multipartFormData" : true,
+                    {{/multipartFormData}}
+                    {{/hasFormParams}}
+                    {{^hasFormParams}}
+                    {{^multipartFormData}}
+                    "multipartFormData" : false,
+                    {{/multipartFormData}}
+                    {{#multipartFormData}}
+                    "multipartFormData" : true,
+                    {{/multipartFormData}}
+                    {{/hasFormParams}}
+                    {{/vendorExtensions}}
+                    "bodyParams" : [
+                        {{#bodyParam}}
+                        {
+                                {{^consumes}}
+                                "consumes": [],
+                                {{/consumes}}
+                                {{#consumes.0}}
+                                "mediaType" : '{{{mediaType}}}',
+                                {{/consumes.0}}
+                                "baseName" : "{{baseName}}",
+                        },
+                        {{/bodyParam}}
+                    ],
+                },
+            },
+        {{/scenarios}}
+        }
+    },
+{{/operation}}
+{{/operations}}
+}

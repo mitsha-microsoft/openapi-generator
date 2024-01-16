@@ -238,7 +238,11 @@ public interface CodegenConfig {
 
     String apiTestFilename(String templateName, String tag);
 
+    String apiTestFilenameBasedOnOperation(String templateName, String tag, String method);
+
     String apiDocFilename(String templateName, String tag);
+    
+    String toApiOperationName(String tag, String method);
 
     boolean shouldOverwrite(String filename);
 
