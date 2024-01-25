@@ -19,6 +19,7 @@ package org.openapitools.codegen;
 
 import com.fasterxml.jackson.annotation.JsonCreator;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.benmanes.caffeine.cache.Cache;
@@ -51,10 +52,12 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.tuple.Pair;
 import org.apache.commons.text.StringEscapeUtils;
 import org.apitest.scenarios.codegen.APITestScenario;
+import org.apitest.scenarios.codegen.CodegenPropertyExampleGenerator;
 import org.apitest.scenarios.codegen.GenerateAIBasedAPITestsScenario;
 import org.apitest.scenarios.codegen.ParameterExampleGenerator;
 import org.apitest.scenarios.codegen.TestScenario;
 import org.apitest.scenarios.rules.codegen.IntegerParameterGenerator;
+import org.apitest.scenarios.rules.codegen.PrimitiveValidExample;
 import org.apitest.scenarios.rules.codegen.StringParameterGenerator;
 import org.openapitools.codegen.CodegenDiscriminator.MappedModel;
 import org.openapitools.codegen.api.TemplatingEngineAdapter;
@@ -2732,6 +2735,7 @@ public class DefaultCodegen implements CodegenConfig {
     }
 
     Map<NamedSchema, CodegenProperty> schemaCodegenPropertyCache = new HashMap<>();
+    public Map<CodegenProperty, Schema> propertySchemaCache = new HashMap<>();
 
     protected void updateModelForComposedSchema(CodegenModel m, Schema schema, Map<String, Schema> allDefinitions) {
         final Schema composed = schema;
@@ -2740,7 +2744,7 @@ public class DefaultCodegen implements CodegenConfig {
         Map<String, Schema> allProperties = new LinkedHashMap<>();
         List<String> allRequired = new ArrayList<>();
 
-        // if schema has properties outside of allOf/oneOf/anyOf also add them to m
+        // if shema has properties outside of allOf/oneOf/anyOf also add them to m
         if (composed.getProperties() != null && !composed.getProperties().isEmpty()) {
             if (composed.getOneOf() != null && !composed.getOneOf().isEmpty()) {
                 LOGGER.warn("'oneOf' is intended to include only the additional optional OAS extension discriminator object. " +
@@ -4218,9 +4222,19 @@ public class DefaultCodegen implements CodegenConfig {
         // set the default value
         property.defaultValue = toDefaultValue(property, p);
         property.defaultValueWithParam = toDefaultValueWithParam(name, p);
-
+        
+//        try {
+//        	CodegenPropertyExampleGenerator generator = new CodegenPropertyExampleGenerator(this);
+//            property.primitiveValidExample = new PrimitiveValidExample();
+//            property.primitiveValidExample.required = new ArrayList<Object>();
+//			property.primitiveValidExample.required.add(Json.mapper().writeValueAsString(generator.generateExamples(property, p, true)));
+//		} catch (JsonProcessingException e) {
+//			LOGGER.error("Unable to generate primitive valid example for codegen property {}", property.getName());
+//		}
+        
         LOGGER.debug("debugging from property return: {}", property);
         schemaCodegenPropertyCache.put(ns, property);
+        //propertySchemaCache.put(property, p);
         return property;
     }
 
@@ -4895,6 +4909,18 @@ public class DefaultCodegen implements CodegenConfig {
     	}catch(Exception e) {
     		
     	}
+        
+        try {
+        	LOGGER.info("####### UPDATING TEST SCEANARIONS FOR OPERATION {} ####", op.summary);
+            APITestScenario ts = new APITestScenario(this);
+            ts.generateTestScenariosBasedOnAllParams(op);
+            //ts.generateTestScenariosBasedOnRules(op);
+            LOGGER.info("####### TOTAL TEST SCEANARIONS FOR OPERATION {} ####", op.scenarios.size());
+
+        }catch (Exception e){
+        	LOGGER.error("Error occured while generating test scenarios for operation {} {}", op.summary, e);
+        }
+        
         return op;
     }
 
@@ -8400,7 +8426,13 @@ public class DefaultCodegen implements CodegenConfig {
 	}
 
 	@Override
+	public String apiTestDataFilenameBasedOnOperation(String templateName, String tag, String method) {
+		String suffix = apiTestTemplateFiles().get(templateName);
+        return apiTestFileFolder() + File.separator + toApiName(tag) + File.separator + "data" + File.separator + tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + ".data" +  suffix;
+	}
+	
+	@Override
 	public String toApiOperationName(String tag, String method) {
-		return tag.toLowerCase() + "." + method.toLowerCase() + ".spec";
+		return tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + ".spec";
 	}
 }
