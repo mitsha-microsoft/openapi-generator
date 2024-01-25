@@ -1,13 +1,10 @@
 import * as fs from 'fs';
 
-export const TestDataWithAllParams = {
+export const TestDataWithAllParams : { [key: string]: any } = {
 {{#operations}}
 {{#operation}}
     "{{{operationId}}}" : {
-        "scenarios" : {
-            {{#scenarios}}
-            "{{-index}}": {
-                "isValid": {{valid}},
+        
                 "summary" : "{{{scenario}}}",
                 "path" : "{{path}}",
                 "httpMethod" : "{{httpMethod}}",
@@ -229,9 +226,7 @@ export const TestDataWithAllParams = {
                         },
                         {{/bodyParam}}
                     ],
-                },
-            },
-        {{/scenarios}}
+                
         }
     },
 {{/operation}}

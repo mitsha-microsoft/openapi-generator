@@ -1,13 +1,14 @@
 import { test, expect } from '@playwright/test';
-import { createRequestFunction } from '../../common';
-
+import { createRequestFunction } from '../../.lib/common';
+import {TestData} from "./data/{{testDataFileName}}"
 {{#operations}}
 {{#operation}}
 // {{summary}}
 test.describe('{{operationId}}', function() {    
 {{#scenarios}}
     test('{{scenario}}', async () => {
-        let response = await createRequestFunction('{{operationId}}', '{{-index}}');
+	    let testData = TestData['{{operationId}}']["scenarios"]['{{-index}}'];
+        let response = await createRequestFunction('{{operationId}}', '{{-index}}', testData);
         expect(response.status).toBe({{expectedOutcome.statusCode}});
     });
 {{/scenarios}}

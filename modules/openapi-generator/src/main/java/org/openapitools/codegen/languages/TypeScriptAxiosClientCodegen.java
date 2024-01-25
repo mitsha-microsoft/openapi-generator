@@ -215,14 +215,15 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 
 		//supportingFiles.add(new SupportingFile("index.mustache", "", "index.ts"));
 		//supportingFiles.add(new SupportingFile("baseApi.mustache", "", "base.ts"));
-		supportingFiles.add(new SupportingFile("common.mustache", "", "common.ts"));
+		supportingFiles.add(new SupportingFile("common.mustache", ".lib", "common.ts"));
 		//supportingFiles.add(new SupportingFile("api.mustache", "", "api.ts"));
-		supportingFiles.add(new SupportingFile("configuration.mustache", "", "configuration.ts"));
+		supportingFiles.add(new SupportingFile("configuration.mustache", ".lib", "configuration.ts"));
 		// supportingFiles.add(new SupportingFile("git_push.sh.mustache", "",
 		// "git_push.sh"));
 		// supportingFiles.add(new SupportingFile("gitignore", "", ".gitignore"));
 		// supportingFiles.add(new SupportingFile("npmignore", "", ".npmignore"));
 		supportingFiles.add(new SupportingFile("playwright.config.mustache", "", "playwright.config.ts"));
+		supportingFiles.add(new SupportingFile("package.mustache", "", "package.json"));
 
 		if (additionalProperties.containsKey(SEPARATE_MODELS_AND_API)) {
 			boolean separateModelsAndApi = Boolean

@@ -3,6 +3,7 @@ package org.apitest.scenarios.rules.codegen;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import org.openapitools.codegen.CodegenProperty;
@@ -220,7 +221,7 @@ public class StringParameterGenerator extends ParameterGenerator<String> {
             numberString = numberString.substring(0, maxLength);
         } else if (numberString.length() < maxLength) {
             // Pad with zeros if too short
-            numberString = String.format("%0" + maxLength + "d", randomNumber);
+            numberString = String.format(Locale.ROOT, "%0" + maxLength + "d", randomNumber);
         }
 
         return ensureQuotes(numberString);

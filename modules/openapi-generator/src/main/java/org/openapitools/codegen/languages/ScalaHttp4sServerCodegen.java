@@ -362,7 +362,7 @@ public class ScalaHttp4sServerCodegen extends DefaultCodegen implements CodegenC
                         cModel.getVendorExtensions().put("x-extends", exts.subList(0, 1));
                         cModel.getVendorExtensions().put("x-extendsWith", exts.subList(1, exts.size()));
                     }
-                } catch (IndexOutOfBoundsException ignored) {
+                } catch (Exception ignored) {
                 }
 
                 // add refined constraints
@@ -419,7 +419,7 @@ public class ScalaHttp4sServerCodegen extends DefaultCodegen implements CodegenC
                     String fixedPattern = prop.getPattern().substring(1, prop.getPattern().length() - 1);
                     refined.add("MatchesRegex[\"" + fixedPattern + "\"]");
                     imports.add("MatchesRegex");
-                } catch (IndexOutOfBoundsException ignored) {
+                } catch (Exception ignored) {
                 }
             }
             vendorExtensions.putAll(makeRefiined(imports, prop.getDataType(), refined));

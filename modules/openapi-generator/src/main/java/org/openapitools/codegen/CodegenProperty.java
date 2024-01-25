@@ -24,6 +24,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
+import org.apitest.scenarios.rules.codegen.PrimitiveValidExample;
+
 public class CodegenProperty implements Cloneable, IJsonSchemaValidationProperties {
     /**
      * The value of the 'type' attribute in the OpenAPI schema.
@@ -215,6 +217,7 @@ public class CodegenProperty implements Cloneable, IJsonSchemaValidationProperti
     private String format;
     private LinkedHashMap<String, List<String>> dependentRequired;
     private CodegenProperty contains;
+    public PrimitiveValidExample primitiveValidExample;
 
     @Override
     public CodegenProperty getContains() {
@@ -819,6 +822,10 @@ public class CodegenProperty implements Cloneable, IJsonSchemaValidationProperti
             if (this.contains != null) {
                 cp.setContains(this.contains);
             }
+            
+            if(this.primitiveValidExample != null) {
+            	cp.primitiveValidExample = this.primitiveValidExample;
+            }
 
             return cp;
         } catch (CloneNotSupportedException e) {
@@ -1383,4 +1390,12 @@ public class CodegenProperty implements Cloneable, IJsonSchemaValidationProperti
                 ref, uniqueItemsBoolean, schemaIsFromAdditionalProperties, isBooleanSchemaTrue, isBooleanSchemaFalse,
                 format, dependentRequired, contains);
     }
+    
+    public PrimitiveValidExample getPrimitiveValidExample() {
+		return primitiveValidExample;
+	}
+    
+    public void setPrimitiveValidExample(PrimitiveValidExample primitiveValidExample) {
+		this.primitiveValidExample = primitiveValidExample;
+	}
 }

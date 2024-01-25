@@ -240,6 +240,8 @@ public interface CodegenConfig {
 
     String apiTestFilenameBasedOnOperation(String templateName, String tag, String method);
 
+    String apiTestDataFilenameBasedOnOperation(String templateName, String tag, String method);
+
     String apiDocFilename(String templateName, String tag);
     
     String toApiOperationName(String tag, String method);

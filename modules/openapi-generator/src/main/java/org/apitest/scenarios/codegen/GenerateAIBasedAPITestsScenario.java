@@ -13,6 +13,7 @@ import com.azure.ai.openai.models.ChatResponseMessage;
 import com.azure.core.credential.AzureKeyCredential;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 
 public class GenerateAIBasedAPITestsScenario {
     
@@ -310,13 +311,13 @@ public class GenerateAIBasedAPITestsScenario {
     	ChatCompletions chatCompletions = client.getChatCompletions("vens-chatgpt-completion1",
     	    new ChatCompletionsOptions(chatMessages));
 
-    	System.out.printf("Model ID=%s is created at %s.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
+    	System.out.printf(Locale.ROOT, "Model ID=%s is created at %s.%n", chatCompletions.getId(), chatCompletions.getCreatedAt());
     	
     	String response = "";
     	for (ChatChoice choice : chatCompletions.getChoices()) {
     	    ChatResponseMessage message = choice.getMessage();
-    	    System.out.printf("Index: %d, Chat Role: %s.%n", choice.getIndex(), message.getRole());
-    	    System.out.println("Message:");
+    	    System.out.printf(Locale.ROOT, "Index: %d, Chat Role: %s.%n", choice.getIndex(), message.getRole());
+    	    System.out.printf(Locale.ROOT, "Message:");
     	    response += message.getContent();
     	}
     	return response;

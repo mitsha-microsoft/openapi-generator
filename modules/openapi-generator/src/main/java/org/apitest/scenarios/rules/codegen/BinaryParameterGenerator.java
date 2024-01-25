@@ -1,6 +1,7 @@
 package org.apitest.scenarios.rules.codegen;
 
 
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Base64;
@@ -42,22 +43,33 @@ public class BinaryParameterGenerator extends ParameterGenerator<String> {
     // Valid scenarios
 
     private List<Object> generateValidRequired() {
-            return Arrays.asList(
-                Base64.getEncoder().encodeToString(faker.lorem().characters(10, 20).getBytes()),
-                Base64.getEncoder().encodeToString(faker.lorem().characters(15, 25).getBytes())
-            );
+            try {
+				return Arrays.asList(
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(10, 20).getBytes("utf-8")),
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(15, 25).getBytes("utf-8"))
+				);
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
+            return new ArrayList<>();
     }
 
     private List<Object> generateValidMaxLength() {
         if (property.maxLength != null && property.maxLength > 0) {
             int maxLength = property.maxLength;
-            return Arrays.asList(
-                Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength).getBytes()),
-                Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength - 5).getBytes())
-            );
-        } else {
-            return new ArrayList<>();
+            try {
+				return Arrays.asList(
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength).getBytes("utf-8")),
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength - 5).getBytes("utf-8"))
+				);
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
         }
+            return new ArrayList<>();
     }
 
     // Invalid scenarios
@@ -73,13 +85,18 @@ public class BinaryParameterGenerator extends ParameterGenerator<String> {
     private List<Object> generateInvalidMaxLength() {
         if (property.maxLength != null && property.maxLength > 0) {
             int maxLength = property.maxLength;
-            return Arrays.asList(
-                Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength + 5).getBytes()),
-                Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength + 10).getBytes())
-            );
-        } else {
-            return new ArrayList<>();
+            try {
+				return Arrays.asList(
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength + 5).getBytes("utf-8")),
+				    Base64.getEncoder().encodeToString(faker.lorem().characters(maxLength + 10).getBytes("utf-8"))
+				);
+			} catch (UnsupportedEncodingException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+            
         }
+        return new ArrayList<>();
     }
 
 	@Override

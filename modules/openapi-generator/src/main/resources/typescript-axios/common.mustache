@@ -8,21 +8,24 @@ export const BASE_PATH = "{{{overriddenBasepath}}}";
 {{^overrideBasepath}}
 export const BASE_PATH = "{{{basePath}}}".replace(/\/+$/, "");
 {{/overrideBasepath}}
-import { TestDataWithAllParams } from './dataWithAllParams';
+import { TestDataWithAllParams } from './swaggerSchema';
 {{#withNodeImports}}
 import { URL, URLSearchParams } from 'url';
 {{/withNodeImports}}
 import type { ConfigurationParameters } from './configuration';
-import { Configuration } from './configuration';
-import { TestData } from './data';
+import {apiTestConfig} from '../../api-tests.config';
+import path from 'path';
+
+
+let basePath = apiTestConfig?.basePath ?? BASE_PATH;
 
 const configurationParameter : ConfigurationParameters = {
-    basePath: BASE_PATH,   
+    basePath: basePath  
 }
 
-{{#hasAuthScheme}}
-configurationParameter["accessToken"] = "{{{bearerToken}}}";
-{{/hasAuthScheme}}
+if(apiTestConfig?.auth?.scheme === "bearer"){
+    configurationParameter["accessToken"] = apiTestConfig.apiTestConfig?.auth?.token;
+}
 
 const configuration = new Configuration(configurationParameter);
 
@@ -129,22 +132,29 @@ export const toPathString = function (url: URL) {
     return url.pathname + url.search + url.hash
 }
 
-export const createRequestFunction = async (operationId:string, scenarioIndex:string) => {
-    let data = TestDataWithAllParams[operationId]["scenarios"][scenarioIndex];
-    let testData = TestData[operationId]["scenarios"][scenarioIndex];
+
+export const createRequestFunction = async (operationId:string, scenarioIndex:string, testData:any) => {
+    let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
     let path = data["path"];
     let pathParams = data["parameters"]["pathParams"];
     let queryParams = data["parameters"]["queryParams"];
     let headerParams = data["parameters"]["headerParams"];
     let formParams = data["parameters"]["formParams"];
     let bodyParams = data["parameters"]["bodyParams"];
-    let auth = data["parameters"]["auth"];
+    let auth = data["auth"];
     let method = data["httpMethod"];
     let hasFormParams = data["parameters"]["hasFormParams"];
     let multipartFormData = data["parameters"]["multipartFormData"];
 
+    // override parameters from apiTestConfig
+    if(apiTestConfig?.parameters){
+        for(let key in apiTestConfig?.parameters){
+            testData[key] = apiTestConfig?.parameters[key];
+        }
+    }
+
     for(let i = 0; i < pathParams.length; i++) {
-        path = path.replace(`{${pathParams[i]["baseName"]}}`, encodeURIComponent(String(pathParams[i]["example"])));
+        path = path.replace(`{${pathParams[i]["baseName"]}}`, encodeURIComponent(String(testData[pathParams[i]["baseName"]])));
     }
 
     let fullPath = (globalAxios.defaults.baseURL ? '' : configuration?.basePath ?? BASE_PATH) + path;
@@ -177,27 +187,27 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
             let isKeyInHeader = authMethod["isKeyInHeader"];
             let isKeyInQuery = authMethod["isKeyInQuery"];
             if(isKeyInHeader){
-                setApiKeyToObject(headers, authMethod["keyParamName"], configuration);
+                await setApiKeyToObject(headers, authMethod["keyParamName"], configuration);
             }else if(isKeyInQuery){
-                setApiKeyToObject(query, authMethod["keyParamName"], configuration);
+                await setApiKeyToObject(query, authMethod["keyParamName"], configuration);
             }
         }
         let isBasicBasic = authMethod["isBasicBasic"];
         if(isBasicBasic){
-            setBasicAuthToObject(requestOptions, configuration);
+            await setBasicAuthToObject(requestOptions, configuration);
         }
         let isBasicBearer = authMethod["isBasicBearer"];
         if(isBasicBearer){
-            setBearerAuthToObject(headers, configuration);
+            await setBearerAuthToObject(headers, configuration);
         }
         let isOAuth = authMethod["isOAuth"];
         if(isOAuth){
-            setOAuthToObject(headers, authMethod["name"], authMethod["scopes"], configuration);
+            await setOAuthToObject(headers, authMethod["name"], authMethod["scopes"], configuration);
         }
     }  
 
     for(let i = 0; i < queryParams.length; i++) {
-        if(testData["parameters"][queryParams[i]["baseName"]] === ""){
+        if(testData[queryParams[i]["baseName"]] === ""){
             continue;
         }
         let isArray = queryParams[i]["isArray"];
@@ -212,64 +222,64 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
         if(isArray){
             if(isCollectionFormatMulti){
                 if(uniqueItems){
-                    query[queryParams[i]["baseName"]] = Array.from(testData["parameters"][queryParams[i]["baseName"]]);
+                    query[queryParams[i]["baseName"]] = Array.from(testData[queryParams[i]["baseName"]]);
                 }else{
-                    query[queryParams[i]["baseName"]] = testData["parameters"][queryParams[i]["baseName"]];
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
                 }
             }else{
                 if(uniqueItems){
-                    query[queryParams[i]["baseName"]] = Array.from(testData["parameters"][queryParams[i]["baseName"]]).join(queryParams[i]["collectionFormat"]);
+                    query[queryParams[i]["baseName"]] = Array.from(testData[queryParams[i]["baseName"]]).join(queryParams[i]["collectionFormat"]);
                 }else{
-                    query[queryParams[i]["baseName"]] = testData["parameters"][queryParams[i]["baseName"]].join(queryParams[i]["collectionFormat"]);
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]].join(queryParams[i]["collectionFormat"]);
                 }
             }
         } else {
             let isExplode = queryParams[i]["isExplode"];
             if(isDateTime){
-                query[queryParams[i]["baseName"]] = (testData["parameters"][queryParams[i]["baseName"]] instanceof Date) ? (testData["parameters"][queryParams[i]["baseName"]] as any).toISOString() : testData["parameters"][queryParams[i]["baseName"]];
+                query[queryParams[i]["baseName"]] = (testData[queryParams[i]["baseName"]] instanceof Date) ? (testData[queryParams[i]["baseName"]] as any).toISOString() : testData[queryParams[i]["baseName"]];
             }else if(isDate){
-                query[queryParams[i]["baseName"]] = (testData["parameters"][queryParams[i]["baseName"]] instanceof Date) ? (testData["parameters"][queryParams[i]["baseName"]] as any).toISOString().substring(0,10) : testData["parameters"][queryParams[i]["baseName"]];
+                query[queryParams[i]["baseName"]] = (testData[queryParams[i]["baseName"]] instanceof Date) ? (testData[queryParams[i]["baseName"]] as any).toISOString().substring(0,10) : testData[queryParams[i]["baseName"]];
             } else if(isExplode){
                 if(isPrimitiveType){
-                    query[queryParams[i]["baseName"]] = testData["parameters"][queryParams[i]["baseName"]];
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
                 }else if(isEnum || isEnumRef){
-                    query[queryParams[i]["baseName"]] = testData["parameters"][queryParams[i]["baseName"]];
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
                 } else {
-                    for (const [key, value] of Object.entries(testData["parameters"][queryParams[i]["baseName"]])) {
+                    for (const [key, value] of Object.entries(testData[queryParams[i]["baseName"]])) {
                         query[key] = value;
                     }
                 }
             } else {
-                query[queryParams[i]["baseName"]] = testData["parameters"][queryParams[i]["baseName"]];
+                query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
             }
         }
     }  
 
     for(let i = 0; i < headerParams.length; i++) {
-        if(testData["parameters"][headerParams[i]["baseName"]] === ""){
+        if(testData[headerParams[i]["baseName"]] === ""){
             continue;
         }
         let isArray = headerParams[i]["isArray"];
         if(isArray){
-            if(testData["parameters"][headerParams[i]["baseName"]]){
+            if(testData[headerParams[i]["baseName"]]){
                 let uniqueItems = headerParams[i]["uniqueItems"];
                 let dataType = headerParams[i]["dataType"];
                 let mapped;
                 if(uniqueItems){
-                    mapped = Array.from(testData["parameters"][headerParams[i]["baseName"]]).map(value => (<any>dataType !== "Set<string>") ? JSON.stringify(value) : (value || ""));
+                    mapped = Array.from(testData[headerParams[i]["baseName"]]).map(value => (<any>dataType !== "Set<string>") ? JSON.stringify(value) : (value || ""));
                 }else{
-                    mapped = testData["parameters"][headerParams[i]["baseName"]].map(value => (<any>dataType !== "Array<string>") ? JSON.stringify(value) : (value || ""));
+                    mapped = testData[headerParams[i]["baseName"]].map(value => (<any>dataType !== "Array<string>") ? JSON.stringify(value) : (value || ""));
                 }
                 headers[headerParams[i]["baseName"]] = mapped.join(headerParams[i]["collectionFormat"]);
             }
         } else {
-            if(testData["parameters"][headerParams[i]["baseName"]]){
+            if(testData[headerParams[i]["baseName"]]){
                 if(headerParams[i]["isString"]){
-                    headers[headerParams[i]["baseName"]] = String(testData["parameters"][headerParams[i]["baseName"]]);
+                    headers[headerParams[i]["baseName"]] = String(testData[headerParams[i]["baseName"]]);
                 } else {
-                    headers[headerParams[i]["baseName"]] = typeof testData["parameters"][headerParams[i]["baseName"]] === 'string'
-                        ? testData["parameters"][headerParams[i]["baseName"]]
-                        : JSON.stringify(testData["parameters"][headerParams[i]["baseName"]]);
+                    headers[headerParams[i]["baseName"]] = typeof testData[headerParams[i]["baseName"]] === 'string'
+                        ? testData[headerParams[i]["baseName"]]
+                        : JSON.stringify(testData[headerParams[i]["baseName"]]);
                 }
             }
         
@@ -277,16 +287,16 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
     }
         
     for(let i = 0; i < formParams.length; i++) {
-        if(testData["parameters"][formParams[i]["baseName"]] === ""){
+        if(testData[formParams[i]["baseName"]] === ""){
             continue;
         }
         let isArray = formParams[i]["isArray"];
-        if(testData["parameters"][formParams[i]["baseName"]]){
+        if(testData[formParams[i]["baseName"]]){
             if(isArray){
                 let isCollectionFormatMulti = formParams[i]["isCollectionFormatMulti"];
                 let multipartFormData = formParams[i]["multipartFormData"];
                 if(isCollectionFormatMulti){
-                    testData["parameters"][formParams[i]["baseName"]].forEach((element) => {
+                    testData[formParams[i]["baseName"]].forEach((element) => {
                         if(multipartFormData){
                             formData.append(formParams[i]["baseName"], element as any);
                         }else{
@@ -295,13 +305,13 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
                     });
                 }else {
                     if(multipartFormData){
-                        formData.append(formParams[i]["baseName"], testData["parameters"][formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
+                        formData.append(formParams[i]["baseName"], testData[formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
                     }else{
-                        formData.set(formParams[i]["baseName"], testData["parameters"][formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
+                        formData.set(formParams[i]["baseName"], testData[formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
                     }
                 }
             }else{
-                let data = testData["parameters"][formParams[i]["baseName"]];
+                let data = testData[formParams[i]["baseName"]];
                 let multipartFormData = formParams[i]["multipartFormData"];
                 if(multipartFormData){
                     let isPrimitiveType = formParams[i]["isPrimitiveType"];
@@ -345,6 +355,7 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
     }
     requestOptions.headers = {...headers, ...headersFromBaseOptions, ...formDataHeaders};
 
+    
     if(hasFormParams){
         if(multipartFormData){
             requestOptions.data = formData;
@@ -355,8 +366,8 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
 
     if(bodyParams && bodyParams.length > 0){
         let bodyParam = bodyParams[0];
-        if(testData["parameters"][bodyParam["baseName"]] !== ""){
-            requestOptions.data = serializeDataIfNeeded(testData["parameters"][bodyParam["baseName"]], requestOptions, configuration);
+        if(testData[bodyParam["baseName"]] !== ""){
+            requestOptions.data = serializeDataIfNeeded(testData[bodyParam["baseName"]], requestOptions, configuration);
         }else{
             requestOptions.data = null;
         }
@@ -367,7 +378,22 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
         options: requestOptions,
     };
         
+    // override headers from apiTestConfig
+    if(apiTestConfig?.headers){
+        for(let key in apiTestConfig?.headers){
+            if(typeof apiTestConfig?.headers[key] === "function"){
+                requestOptions.headers[key] = apiTestConfig?.headers[key]();
+            }else{
+                requestOptions.headers[key] = apiTestConfig?.headers[key];
+            }
+        }
+    }
     const axiosRequestArgs = {...axiosArgs.options, url: axiosArgs.url};
-    return globalAxios.request(axiosRequestArgs);
+    try{
+        let response = await globalAxios.request(axiosRequestArgs);
+        return response;
+    }catch(error){
+        let errorResponse = error.response;
+        return errorResponse;
+    }
 }
-

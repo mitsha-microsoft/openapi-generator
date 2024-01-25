@@ -603,6 +603,7 @@ public class DefaultGenerator implements Generator {
             LOGGER.info("Skipping generation of APIs.");
             return;
         }
+        List<CodegenOperation> listOperations = new ArrayList<>();
         Map<String, List<CodegenOperation>> paths = processPaths(this.openAPI.getPaths());
         Set<String> apisToGenerate = null;
         String apiNames = GlobalSettings.getProperty(CodegenConstants.APIS);
@@ -689,7 +690,7 @@ public class DefaultGenerator implements Generator {
                 */
 
                 allOperations.add(operation);
-
+                listOperations.addAll(operation.getOperations().getOperation());
                 addAuthenticationSwitches(operation);
 
                 for (String templateName : config.apiTemplateFiles().keySet()) {
@@ -746,7 +747,7 @@ public class DefaultGenerator implements Generator {
                 	
                 	// create map of operation with all the methods
                 	for(CodegenOperation op : ops) {
-						String method = op.httpMethod.toLowerCase();
+						String method = op.httpMethod.toLowerCase(Locale.ROOT);
 						if(operationMap.containsKey(method)) {
 							OperationMap map = operationMap.get(method);
 						    map.getOperation().add(op);
@@ -786,6 +787,8 @@ public class DefaultGenerator implements Generator {
                         }
 
                         config.postProcessOperationsWithModels(templateData, allModels);
+                        String testDataFileName = config.apiTestDataFilenameBasedOnOperation(templateName, tag, method);
+                        templateData.put("testDataFileName", tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + ".data.ts");
                         String filename = config.apiTestFilenameBasedOnOperation(templateName, tag, method);
                         File apiTestFile = new File(filename);
                         // do not overwrite test file that already exists
@@ -799,8 +802,22 @@ public class DefaultGenerator implements Generator {
                                     config.postProcessFile(written, "api-test");
                                 }
                             }
-                            
                         }
+                        
+                        // generate api test data 
+                        File testDataWritten;
+                		try {
+                			testDataWritten = processTemplateToFile(templateData, "data.mustache", testDataFileName, generateApiTests, CodegenConstants.API_TESTS, config.apiTestFileFolder());
+                			if (testDataWritten != null) {
+                	            files.add(testDataWritten);
+                	            if (config.isEnablePostProcessFile() && !dryRun) {
+                	                config.postProcessFile(testDataWritten, "api-test");
+                	            }
+                	        }
+                		} catch (IOException e) {
+                			// TODO Auto-generated catch block
+                			e.printStackTrace();
+                		}
                 	}
                     
                 }
@@ -819,28 +836,12 @@ public class DefaultGenerator implements Generator {
         for(OperationsMap map : allOperations) {
         	allOperationsMap.getOperations().getOperation().addAll(map.getOperations().getOperation());
         }
-        
-        // generate api test data 
-        String testDataFileName = config.getOutputDir() + File.separator + "data.ts";
-        File testDataWritten;
-		try {
-			testDataWritten = processTemplateToFile(allOperationsMap, "data.mustache", testDataFileName, generateApiTests, CodegenConstants.API_TESTS, config.getOutputDir());
-			if (testDataWritten != null) {
-	            files.add(testDataWritten);
-	            if (config.isEnablePostProcessFile() && !dryRun) {
-	                config.postProcessFile(testDataWritten, "api-test");
-	            }
-	        }
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        
-		// generate api test data will all params 
-        String testDataWithAllParamsFileName = config.getOutputDir() + File.separator + "dataWithAllParams.ts";
+                
+		//generate api test data will all params 
+        String testDataWithAllParamsFileName = config.getOutputDir() +  File.separator + ".lib" + File.separator + "swaggerSchema.ts";
         File testDataWithAllParamsWritten;
 		try {
-			testDataWithAllParamsWritten = processTemplateToFile(allOperationsMap, "dataWithAllParams.mustache", testDataWithAllParamsFileName, generateApiTests, CodegenConstants.API_TESTS, config.getOutputDir());
+			testDataWithAllParamsWritten = processTemplateToFile(allOperationsMap, "swaggerSchema.mustache", testDataWithAllParamsFileName, generateApiTests, CodegenConstants.API_TESTS, config.getOutputDir());
 			if (testDataWithAllParamsWritten != null) {
 	            files.add(testDataWithAllParamsWritten);
 	            if (config.isEnablePostProcessFile() && !dryRun) {
@@ -856,7 +857,6 @@ public class DefaultGenerator implements Generator {
             LOGGER.info("############ Operation info ############");
             Json.prettyPrint(allOperations);
         }
-
     }
 
     void generateWebhooks(List<File> files, List<WebhooksMap> allWebhooks, List<ModelMap> allModels) {
@@ -1619,17 +1619,6 @@ public class DefaultGenerator implements Generator {
                         codegenOperation.authMethods = filterAuthMethods(fullAuthMethods, globalSecurities);
                         codegenOperation.hasAuthMethods = true;
                     }
-                }
-                
-                try {
-                	LOGGER.info("####### UPDATING TEST SCEANARIONS FOR OPERATION {} ####", codegenOperation.summary);
-                    APITestScenario ts = new APITestScenario(this.config);
-                    //ts.generateTestScenariosBasedOnAllParams(codegenOperation);
-                    ts.generateAPITestScenariosBasedOnRule(codegenOperation);
-                    LOGGER.info("####### TOTAL TEST SCEANARIONS FOR OPERATION {} ####", codegenOperation.scenarios.size());
-
-                }catch (Exception e){
-                	LOGGER.error("Error occured while generating test scenarios for operation {} {}", codegenOperation.summary, e);
                 }
                 
             } catch (Exception ex) {

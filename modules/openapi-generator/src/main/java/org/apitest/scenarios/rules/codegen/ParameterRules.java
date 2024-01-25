@@ -117,7 +117,7 @@ public class ParameterRules {
 	
 	
 	public enum PrimitiveValidParameterRuleTypes {
-		REQUIRED("required value fields"),
+		REQUIRED("With all Required value fields"),
 		MIN_LENGTH("min length value fields"),
 		MAX_LENGTH("max length value fields"),
 		MINIMUM("minimum value fields"),
@@ -164,15 +164,57 @@ public class ParameterRules {
 	}
 	
 	public enum ModelValidParameterTypes {
-		ALL_REQUIRED_PASSED,
-		VALID_FORMAT_PASSED,
-		OPTIONAL_SKIPPED,
-		OPTIONAL_PASSED
+		ONLY_REQUIRED_PARAMETERS_PASSED("only required parameters passed"),
+		INDIVIDUAL_OPTIONAL_PARAMETER_PASS("individual optional parameter pass along with all required fields"),
+		ALL_PARAMETERS_PASSED("all parameters passed");
+		
+		private String desc;
+		
+		ModelValidParameterTypes(String desc) {
+			this.desc = desc;
+		}
+		
+		public String getDesc() {
+			return desc;
+		}
 	}
 	
 	public enum ModelInvalidParameterTypes{
-		NOT_ALL_REQUIRED_PASSED,
-		NOT_VALID_FORMAT_PASSED,		
+		REQUIRED_PARAMETERS_FAIL, 
+		INDIVIDUAL_OPTIONAL_PARAMETER_FAIL, 
+		ALL_PARAMETERS_FAIL
+	}
+	
+	
+	
+	public List<Rule> getAllRules(){
+		List<Rule> rules = new ArrayList<>();
+		
+		rules.add(new Rule(PrimitiveValidParameterRuleTypes.REQUIRED, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED ));
+		rules.add(new Rule(PrimitiveValidParameterRuleTypes.REQUIRED, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+		rules.add(new Rule(PrimitiveValidParameterRuleTypes.REQUIRED, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+		
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MIN_LENGTH, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MIN_LENGTH, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MIN_LENGTH, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+//		
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAX_LENGTH, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAX_LENGTH, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAX_LENGTH, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+//		
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MINIMUM, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MINIMUM, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MINIMUM, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+//		
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAXIMUM, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAXIMUM, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.MAXIMUM, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+//		
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.PATTERN, ModelValidParameterTypes.ONLY_REQUIRED_PARAMETERS_PASSED));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.PATTERN, ModelValidParameterTypes.INDIVIDUAL_OPTIONAL_PARAMETER_PASS));
+//		rules.add(new Rule(PrimitiveValidParameterRuleTypes.PATTERN, ModelValidParameterTypes.ALL_PARAMETERS_PASSED));
+		
+		return rules;
 	}
 }
 

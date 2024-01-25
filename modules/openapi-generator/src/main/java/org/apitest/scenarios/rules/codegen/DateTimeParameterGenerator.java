@@ -5,6 +5,7 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import org.openapitools.codegen.CodegenProperty;
@@ -92,7 +93,7 @@ public class DateTimeParameterGenerator extends ParameterGenerator<String> {
     }
 
     private String formatDateTimeAsString(Date date, String format) {
-        SimpleDateFormat dateTimeFormat = new SimpleDateFormat(format);
+        SimpleDateFormat dateTimeFormat = new SimpleDateFormat(format, Locale.ROOT);
         return dateTimeFormat.format(date);
     }
     
