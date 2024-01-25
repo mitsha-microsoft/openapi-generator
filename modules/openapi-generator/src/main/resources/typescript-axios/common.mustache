@@ -12,7 +12,7 @@ import { TestDataWithAllParams } from './swaggerSchema';
 {{#withNodeImports}}
 import { URL, URLSearchParams } from 'url';
 {{/withNodeImports}}
-import type { ConfigurationParameters } from './configuration';
+import { Configuration, type ConfigurationParameters } from './configuration';
 import {apiTestConfig} from '../../api-tests.config';
 import path from 'path';
 
@@ -24,7 +24,7 @@ const configurationParameter : ConfigurationParameters = {
 }
 
 if(apiTestConfig?.auth?.scheme === "bearer"){
-    configurationParameter["accessToken"] = apiTestConfig.apiTestConfig?.auth?.token;
+    configurationParameter["accessToken"] = apiTestConfig?.auth?.token;
 }
 
 const configuration = new Configuration(configurationParameter);
