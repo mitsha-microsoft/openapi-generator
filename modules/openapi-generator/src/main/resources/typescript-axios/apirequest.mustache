@@ -1,6 +1,12 @@
 import { test, expect } from '@playwright/test';
 import { createRequestFunction } from '../../.lib/common';
 import {TestData} from "./data/{{testDataFileName}}"
+import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
+
+// TODO: Need to add SwaggerValidator in the generated tests
+let swaggerPath = '../swagger.json'
+let validator = new SwaggerValidator(swaggerPath);
+
 {{#operations}}
 {{#operation}}
 // {{summary}}
@@ -10,6 +16,14 @@ test.describe('{{operationId}}', function() {
 	    let testData = TestData['{{operationId}}']["scenarios"]['{{-index}}'];
         let response = await createRequestFunction('{{operationId}}', '{{-index}}', testData);
         expect(response.status).toBe({{expectedOutcome.statusCode}});
+        {{#valid}}
+
+        // Check response in case of valid test expected outcome.
+        let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
+        let errors: string[] = []
+        validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+        expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+        {{/valid}}
     });
 {{/scenarios}}
 });
