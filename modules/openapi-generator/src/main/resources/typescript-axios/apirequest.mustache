@@ -14,6 +14,14 @@ let dataDirectory = 'data';
 {{#operations}}
 {{#operation}}
 // {{summary}}
+test.describe('{{operationId}} valid cases', function() {
+    // TODO : Generate test cases based on the valid test case data
+});
+
+test.describe('{{operationId}} invalid cases', function() {
+    // TODO : Generate test cases based on the invalid test case data
+});
+
 test.describe('{{operationId}}', function() {
 
     test('{{operationId}} - Valid Inputs', async () => {
