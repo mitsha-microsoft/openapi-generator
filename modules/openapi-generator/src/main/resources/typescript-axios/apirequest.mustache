@@ -3,14 +3,18 @@ import { createRequestFunction } from '../../.lib/common';
 import {TestData} from "./data/{{testDataFileName}}"
 import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
 
-// TODO: Need to add SwaggerValidator in the generated tests
 let swaggerPath = '../swagger.json'
 let validator = new SwaggerValidator(swaggerPath);
 
 {{#operations}}
 {{#operation}}
 // {{summary}}
-test.describe('{{operationId}}', function() {    
+test.describe('{{operationId}}', function() {
+
+    test('{{operationId}} - Valid Inputs', async () => {
+        // Check if a file called '{{operationId}}_{{httpMethod}}' exists, otherwise use generated data
+    });
+
 {{#scenarios}}
     test('{{scenario}}', async () => {
 	    let testData = TestData['{{operationId}}']["scenarios"]['{{-index}}'];
