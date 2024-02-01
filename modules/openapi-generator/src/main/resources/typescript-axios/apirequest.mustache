@@ -14,6 +14,8 @@ test.describe('{{operationId}} valid cases', function() {
     testCases.map(tc => {
         test(tc["summary"], async () => {
             let response = await createRequestFunction('{{operationId}}', '0', tc);
+
+            test.info().attach("Observed Response", { body: response.data });
             expect(response.status).toBe(200);
 
             // Check response in case of valid test expected outcome.
