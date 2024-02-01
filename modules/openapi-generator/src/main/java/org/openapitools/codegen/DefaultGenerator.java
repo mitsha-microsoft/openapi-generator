@@ -789,6 +789,7 @@ public class DefaultGenerator implements Generator {
                         config.postProcessOperationsWithModels(templateData, allModels);
                         String testDataFileName = config.apiTestDataFilenameBasedOnOperation(templateName, tag, method);
                         templateData.put("testDataFileName", tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + ".data.ts");
+                        templateData.put("testDataFileNameWithoutExt", tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT));
                         String filename = config.apiTestFilenameBasedOnOperation(templateName, tag, method);
                         File apiTestFile = new File(filename);
                         // do not overwrite test file that already exists

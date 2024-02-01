@@ -3,6 +3,7 @@ import { createRequestFunction } from '../../.lib/common';
 import fs from 'fs';
 import path from 'path';
 import { TestData } from "./data/{{testDataFileName}}"
+import * as newTestData from "./data/{{testDataFileNameWithoutExt}}.json";
 import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
 
 let swaggerPath = '../swagger.json'
@@ -21,22 +22,6 @@ test.describe('{{operationId}} valid cases', function() {
 test.describe('{{operationId}} invalid cases', function() {
     // TODO : Generate test cases based on the invalid test case data
 });
-
-test.describe('{{operationId}}', function() {
-
-    test('{{operationId}} - Valid Inputs', async () => {
-        // Check if a file called '{{operationId}}_{{httpMethod}}' exists, otherwise use generated data
-        var expectedDataFileName = '{{operationId}}_{{httpMethod}}.json';
-        var dataFileWithPath = path.join(dataDirectory, expectedDataFileName);
-        if (fs.existsSync(dataFileWithPath)) {
-            let fileContent = fs.readFileSync(dataFileWithPath, 'utf-8');
-            let testData = JSON.parse(fileContent);
-            console.log(testData);
-            let response = await createRequestFunction('{{operationId}}', '1', testData);
-
-            // TODO: status code validation pending
-        }
-    });
 
 {{#scenarios}}
     test('{{scenario}}', async () => {
