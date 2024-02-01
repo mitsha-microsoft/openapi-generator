@@ -807,7 +807,7 @@ public class DefaultGenerator implements Generator {
                         
                         // generate api test data 
                         File testDataWritten;
-                		try {
+                        /* try {
                 			testDataWritten = processTemplateToFile(templateData, "data.mustache", testDataFileName, generateApiTests, CodegenConstants.API_TESTS, config.apiTestFileFolder());
                 			if (testDataWritten != null) {
                 	            files.add(testDataWritten);
@@ -818,7 +818,7 @@ public class DefaultGenerator implements Generator {
                 		} catch (IOException e) {
                 			// TODO Auto-generated catch block
                 			e.printStackTrace();
-                		}
+                		} */ // Skipping test data file generation
                 	}
                     
                 }

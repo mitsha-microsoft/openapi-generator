@@ -1,44 +1,32 @@
 import { test, expect } from '@playwright/test';
 import { createRequestFunction } from '../../.lib/common';
-import fs from 'fs';
-import path from 'path';
-import { TestData } from "./data/{{testDataFileName}}"
-import * as newTestData from "./data/{{testDataFileNameWithoutExt}}.json";
+import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
 import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
 
 let swaggerPath = '../swagger.json'
 let validator = new SwaggerValidator(swaggerPath);
 
-// Location from where user provided data for tests will be taken
-let dataDirectory = 'data';
-
 {{#operations}}
 {{#operation}}
 // {{summary}}
 test.describe('{{operationId}} valid cases', function() {
-    // TODO : Generate test cases based on the valid test case data
+    var testCases: any[] = testData["{{operationId}}"];
+    testCases.map(tc => {
+        test(tc["summary"], async () => {
+            let response = await createRequestFunction('{{operationId}}', '0', tc);
+            expect(response.status).toBe(200);
+
+            // Check response in case of valid test expected outcome.
+            let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
+            let errors: string[] = []
+            validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+        });
+    });
 });
 
 test.describe('{{operationId}} invalid cases', function() {
     // TODO : Generate test cases based on the invalid test case data
 });
-
-{{#scenarios}}
-    test('{{scenario}}', async () => {
-	    let testData = TestData['{{operationId}}']["scenarios"]['{{-index}}'];
-        let response = await createRequestFunction('{{operationId}}', '{{-index}}', testData);
-        expect(response.status).toBe({{expectedOutcome.statusCode}});
-        {{#valid}}
-
-        // Check response in case of valid test expected outcome.
-        let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
-        let errors: string[] = []
-        validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
-        expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
-        {{/valid}}
-    });
-{{/scenarios}}
-});
 {{/operation}}
-
 {{/operations}}
