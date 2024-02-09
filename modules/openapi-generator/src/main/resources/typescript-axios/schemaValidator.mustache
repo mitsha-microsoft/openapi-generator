@@ -306,7 +306,10 @@ return errors;
 
 public validateAgainstDefinition(definitionName: string, data: any): ValidationResult {
 const definitionSchema = this.resolveRef(`#/definitions/${definitionName}`);
-const validationErrors = this.validate(definitionSchema, data);
+let validationErrors: ValidationError[] = [];
+if (!isNullOrUndefined(definitionSchema)) {
+validationErrors = this.validate(definitionSchema, data);
+}
 
 return {
 isValid: validationErrors.length === 0,

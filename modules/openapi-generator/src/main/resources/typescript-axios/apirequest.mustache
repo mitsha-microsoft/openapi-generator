@@ -18,12 +18,11 @@ test.describe('{{operationId}} valid cases', function() {
             test.info().attach("Observed Response", { body: JSON.stringify(response.data) });
             expect(response.status).toBe(tc["response"]["statusCode"]);
 
-            // TODO(mitsha): Fix Response validation
             // Check response in case of valid test expected outcome.
-            // let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
-            // let errors: string[] = []
-            // validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
-            // expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+            let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
+            let errors: string[] = []
+            validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
         });
     });
 });
