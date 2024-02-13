@@ -389,11 +389,16 @@ export const createRequestFunction = async (operationId:string, scenarioIndex:st
         }
     }
     const axiosRequestArgs = {...axiosArgs.options, url: axiosArgs.url};
-    try{
-        let response = await globalAxios.request(axiosRequestArgs);
-        return response;
-    }catch(error){
-        let errorResponse = error.response;
-        return errorResponse;
-    }
+
+    return axiosRequestArgs;
+}
+
+export const sendRequest = async (axiosRequestArgs: any) => {
+        try {
+            let response = await globalAxios.request(axiosRequestArgs);
+            return response;
+        } catch(error) {
+            let errorResponse = error.response;
+            return errorResponse;
+        }
 }
