@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createRequestFunction } from '../../.lib/common';
+import { createRequestFunction, sendRequest } from '../../.lib/common';
 import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
 import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
 
@@ -13,7 +13,12 @@ test.describe('{{operationId}} valid cases', function() {
     var testCases: any[] = testData["{{operationId}}"].filter(tc => tc["isValid"]);
     testCases.map(tc => {
         test(tc["summary"], async () => {
-            let response = await createRequestFunction('{{operationId}}', '0', tc["request"]);
+            test.info().attach("Generated Request", { body: JSON.stringify(tc["request"]) });
+
+            let request = await createRequestFunction('{{operationId}}', '0', tc["request"]);
+
+            test.info().attach("Actual Request", { body: JSON.stringify(request) });
+            let response = await sendRequest(request);
 
             test.info().attach("Observed Response", { body: JSON.stringify(response.data) });
             expect(response.status).toBe(tc["response"]["statusCode"]);
