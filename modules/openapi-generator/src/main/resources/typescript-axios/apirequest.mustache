@@ -2,9 +2,12 @@ import { test, expect } from '@playwright/test';
 import { createRequestFunction, sendRequest } from '../../.lib/common';
 import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
 import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
+import { TestDataWithAllParams } from '../../.lib/swaggerSchema.ts';
 
-let swaggerPath = '../swagger.json'
+let swaggerPath = __dirname + '/../../../swagger.json'
 let validator = new SwaggerValidator(swaggerPath);
+
+let swaggerJSON = validator.getSwagger();
 
 {{#operations}}
 {{#operation}}
@@ -17,10 +20,44 @@ test.describe('{{operationId}} valid cases', function() {
 
             let request = await createRequestFunction('{{operationId}}', '0', tc["request"]);
 
-            test.info().attach("Actual Request", { body: JSON.stringify(request) });
             let response = await sendRequest(request);
+            
+            test.info().attachments.push({
+                name : "Request",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(tc['request']))
+            });
 
-            test.info().attach("Observed Response", { body: JSON.stringify(response.data) });
+            test.info().attachments.push({
+                name : "Response",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(response.data))
+            });
+
+            test.info().attachments.push({
+                name : "Response Code",
+                contentType : "application/json",
+                body : Buffer.from(response.status.toString())
+            });
+
+            test.info().attachments.push({
+                name : "Expected Response Code",
+                contentType : "application/json",
+                body : Buffer.from(tc["response"]["statusCode"].toString())
+            });
+
+            test.info().attachments.push({
+                name : "Summary",
+                contentType : "application/json",
+                body : Buffer.from(tc["summary"])
+            });
+            
+            test.info().attachments.push({
+                name : "Swagger",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(swaggerJSON))
+            });
+            
             expect(response.status).toBe(tc["response"]["statusCode"]);
 
             // Check response in case of valid test expected outcome.
@@ -28,6 +65,7 @@ test.describe('{{operationId}} valid cases', function() {
             let errors: string[] = []
             validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
             expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+            
         });
     });
 });
@@ -36,14 +74,47 @@ test.describe('{{operationId}} invalid cases', function() {
     var testCases: any[] = testData["{{operationId}}"].filter(tc => !tc["isValid"]);
     testCases.map(tc => {
         test(tc["summary"], async () => {
-            test.info().attach("Generated Request", { body: JSON.stringify(tc["request"]) });
 
             let request = await createRequestFunction('{{operationId}}', '0', tc["request"]);
 
-            test.info().attach("Actual Request", { body: JSON.stringify(request) });
             let response = await sendRequest(request);
+            
+            test.info().attachments.push({
+                name : "Request",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(tc['request']))
+            });
 
-            test.info().attach("Observed Response", { body: JSON.stringify(response.data) });
+            test.info().attachments.push({
+                name : "Response",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(response.data))
+            });
+
+            test.info().attachments.push({
+                name : "Response Code",
+                contentType : "application/json",
+                body : Buffer.from(response.status.toString())
+            });
+
+            test.info().attachments.push({
+                name : "Expected Response Code",
+                contentType : "application/json",
+                body : Buffer.from(tc["response"]["statusCode"].toString())
+            });
+
+            test.info().attachments.push({
+                name : "Summary",
+                contentType : "application/json",
+                body : Buffer.from(tc["summary"])
+            });
+            
+            test.info().attachments.push({
+                name : "Swagger",
+                contentType : "application/json",
+                body : Buffer.from(JSON.stringify(swaggerJSON))
+            });
+            
             expect(response.status).toBe(tc["response"]["statusCode"]);
         });
     });

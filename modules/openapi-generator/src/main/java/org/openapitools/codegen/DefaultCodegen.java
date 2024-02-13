@@ -4594,6 +4594,7 @@ public class DefaultCodegen implements CodegenConfig {
             op.path = path;
         }
 
+        
         if (operationIdNameMapping.containsKey(operationId)) {
             op.operationId = operationIdNameMapping.get(operationId);
         } else {
@@ -4905,6 +4906,13 @@ public class DefaultCodegen implements CodegenConfig {
         op.isRestfulDestroy = op.isRestfulDestroy();
         op.isRestful = op.isRestful();
 
+        
+        try {
+			op.jsonSchema = Json.mapper().writeValueAsString(op.allParams);
+		} catch (JsonProcessingException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
         try {
     		opStr = objectMapper.writeValueAsString(op);
     		//LOGGER.info("Codegen op {}", opStr);

@@ -217,6 +217,8 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 		//supportingFiles.add(new SupportingFile("baseApi.mustache", "", "base.ts"));
 		supportingFiles.add(new SupportingFile("common.mustache", ".lib", "common.ts"));
 		supportingFiles.add(new SupportingFile("schemaValidator.mustache", ".lib", "schemaValidator.ts"));
+		supportingFiles.add(new SupportingFile("reporter.mustache", ".lib", "reporter.ts"));
+
 		//supportingFiles.add(new SupportingFile("api.mustache", "", "api.ts"));
 		supportingFiles.add(new SupportingFile("configuration.mustache", ".lib", "configuration.ts"));
 		// supportingFiles.add(new SupportingFile("git_push.sh.mustache", "",

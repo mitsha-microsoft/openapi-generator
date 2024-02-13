@@ -1,0 +1,29 @@
+import fs from 'fs';
+import type {
+    FullConfig, FullResult, Reporter, Suite, TestCase, TestResult
+} from '@playwright/test/reporter';
+
+const path = require('path');
+
+class MyReporter implements Reporter {
+
+    onEnd(result: FullResult) {
+        console.log(`Finished the run: ${result.status}`);
+
+        // Read the JSON report
+        const currentDir = __dirname;
+        console.log(currentDir);
+        const reportDir = '/../report/report.json';
+        const relativePath = path.join(currentDir, reportDir);
+
+        const report = fs.readFileSync(relativePath, 'utf8');
+        const reportData = JSON.parse(report);
+
+        // Write the report data to a JavaScript file
+        const jsReport = 'window.testReport = ' + JSON.stringify(reportData, null, 2) + ';';
+        const jsReportPath = path.join(currentDir, '/../report/testReport.js');
+        fs.writeFileSync(jsReportPath, jsReport);
+    }
+}
+
+export default MyReporter;

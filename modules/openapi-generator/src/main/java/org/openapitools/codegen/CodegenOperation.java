@@ -72,7 +72,7 @@ public class CodegenOperation {
     public String operationIdCamelCase; // for class names
     public String operationIdSnakeCase;
     public List<TestScenario> scenarios;
-    
+    public String  jsonSchema;
     /**
      * Check if there's at least one parameter
      *

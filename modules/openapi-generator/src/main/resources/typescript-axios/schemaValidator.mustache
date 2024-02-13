@@ -3,319 +3,323 @@ import * as path from 'path';
 import { isNullOrUndefined } from 'util';
 
 type ValidationError = {
-message: string;
-path: string;
+    message: string;
+    path: string;
 };
 
 type ValidationResult = {
-isValid: boolean;
-errors: ValidationError[];
+    isValid: boolean;
+    errors: ValidationError[];
 };
 
 type XmlObject = {
-name?: string;
-namespace?: string;
-prefix?: string;
-attribute?: boolean;
-wrapped?: boolean;
+    name?: string;
+    namespace?: string;
+    prefix?: string;
+    attribute?: boolean;
+    wrapped?: boolean;
 };
 
 type ExternalDocsObject = {
-description?: string;
-url?: string;
+    description?: string;
+    url?: string;
 };
 
 type DiscriminatorObject = {
-propertyName: string;
-mapping?: { [key: string]: string };
+    propertyName: string;
+    mapping?: { [key: string]: string };
 };
 
 type OpenApiSchema = {
-type?: string;
-title?: string;
-description?: string;
-default?: any;
-format?: string;
-multipleOf?: number;
-maximum?: number;
-exclusiveMaximum?: boolean;
-minimum?: number;
-exclusiveMinimum?: boolean;
-maxLength?: number;
-minLength?: number;
-pattern?: string;
-maxItems?: number;
-minItems?: number;
-uniqueItems?: boolean;
-maxProperties?: number;
-minProperties?: number;
-required?: string[];
-enum?: any[];
-items?: OpenApiSchema | OpenApiSchema[];
-allOf?: OpenApiSchema[];
-properties?: { [key: string]: OpenApiSchema };
-additionalProperties?: OpenApiSchema | boolean;
-readOnly?: boolean;
-xml?: XmlObject;
-externalDocs?: ExternalDocsObject;
-example?: any;
-discriminator?: DiscriminatorObject;
-anyOf?: OpenApiSchema[];
-oneOf?: OpenApiSchema[];
-not?: OpenApiSchema;
-itemsList?: OpenApiSchema[];
-$ref?: string;
-nullable?: boolean;
-additionalItems?: OpenApiSchema | boolean;
-style?: string;
-explode?: boolean;
-in?: string;
-writeOnly?: boolean;
-deprecated?: boolean;
+    type?: string;
+    title?: string;
+    description?: string;
+    default?: any;
+    format?: string;
+    multipleOf?: number;
+    maximum?: number;
+    exclusiveMaximum?: boolean;
+    minimum?: number;
+    exclusiveMinimum?: boolean;
+    maxLength?: number;
+    minLength?: number;
+    pattern?: string;
+    maxItems?: number;
+    minItems?: number;
+    uniqueItems?: boolean;
+    maxProperties?: number;
+    minProperties?: number;
+    required?: string[];
+    enum?: any[];
+    items?: OpenApiSchema | OpenApiSchema[];
+    allOf?: OpenApiSchema[];
+    properties?: { [key: string]: OpenApiSchema };
+    additionalProperties?: OpenApiSchema | boolean;
+    readOnly?: boolean;
+    xml?: XmlObject;
+    externalDocs?: ExternalDocsObject;
+    example?: any;
+    discriminator?: DiscriminatorObject;
+    anyOf?: OpenApiSchema[];
+    oneOf?: OpenApiSchema[];
+    not?: OpenApiSchema;
+    itemsList?: OpenApiSchema[];
+    $ref?: string;
+    nullable?: boolean;
+    additionalItems?: OpenApiSchema | boolean;
+    style?: string;
+    explode?: boolean;
+    in?: string;
+    writeOnly?: boolean;
+    deprecated?: boolean;
 };
 
 type OpenApiSwagger = {
-definitions: { [key: string]: OpenApiSchema };
+    definitions: { [key: string]: OpenApiSchema };
 };
 
 export class SwaggerValidator {
-private swagger: OpenApiSwagger;
+    private swagger: OpenApiSwagger;
 
-constructor(swaggerPath: string) {
-this.swagger = this.loadSwagger(swaggerPath);
-}
+    constructor(swaggerPath: string) {
+        this.swagger = this.loadSwagger(swaggerPath);
+    }
 
-private loadSwagger(filePath: string): OpenApiSwagger {
-const content = fs.readFileSync(filePath, 'utf-8');
-return JSON.parse(content);
-}
+    public getSwagger(){
+        return this.swagger;
+    }
 
-private resolveRef(refOrSchema: string | OpenApiSchema): OpenApiSchema {
-if (typeof refOrSchema === 'object' && refOrSchema.$ref !== undefined) {
-refOrSchema = refOrSchema.$ref;
-}
+    private loadSwagger(filePath: string): OpenApiSwagger {
+        const content = fs.readFileSync(filePath, 'utf-8');
+        return JSON.parse(content);
+    }
 
-if (typeof refOrSchema === 'string' && refOrSchema.startsWith('#/definitions/')) {
-const definitionName = refOrSchema.substring('#/definitions/'.length);
-return this.swagger.definitions[definitionName];
-} else {
-return refOrSchema as OpenApiSchema;
-}
-}
+    private resolveRef(refOrSchema: string | OpenApiSchema): OpenApiSchema {
+        if (typeof refOrSchema === 'object' && refOrSchema.$ref !== undefined) {
+            refOrSchema = refOrSchema.$ref;
+        }
 
-private validateProperty(schema: OpenApiSchema, value: any, path: string): ValidationError[] {
-const errors: ValidationError[] = [];
+        if (typeof refOrSchema === 'string' && refOrSchema.startsWith('#/definitions/')) {
+            const definitionName = refOrSchema.substring('#/definitions/'.length);
+            return this.swagger.definitions[definitionName];
+        } else {
+            return refOrSchema as OpenApiSchema;
+        }
+    }
 
-// Validate nullable required field
-if (schema.required && schema.required.includes(path) && value === null) {
-return errors; // Nullable required field is considered valid
-}
+    private validateProperty(schema: OpenApiSchema, value: any, path: string): ValidationError[] {
+        const errors: ValidationError[] = [];
 
-// Validate type
-if (isNullOrUndefined(value) && schema.type && typeof value !== schema.type) {
-errors.push({
-message: `Type mismatch for property: ${value}, expected type: ${schema.type}`,
-path,
-});
-}
+        // Validate nullable required field
+        if (schema.required && schema.required.includes(path) && value === null) {
+            return errors; // Nullable required field is considered valid
+        }
 
-// Validate format
-if (schema.format && schema.format === 'date-time') {
-const dateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{2,7})?Z$/;
-if (!dateTimeRegex.test(value)) {
-errors.push({
-message: `Invalid date-time format for property: ${value}`,
-path,
-});
-}
-}
+        // Validate type
+        if (isNullOrUndefined(value) && schema.type && typeof value !== schema.type) {
+            errors.push({
+                message: `Type mismatch for property: ${value}, expected type: ${schema.type}`,
+                path,
+            });
+        }
 
-// Validate pattern
-if (schema.pattern && typeof value === 'string' && !new RegExp(schema.pattern).test(value)) {
-errors.push({
-message: `Pattern mismatch for property: ${value}, expected pattern: ${schema.pattern}`,
-path,
-});
-}
+        // Validate format
+        if (schema.format && schema.format === 'date-time') {
+            const dateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{2,7})?Z$/;
+            if (!dateTimeRegex.test(value)) {
+                errors.push({
+                    message: `Invalid date-time format for property: ${value}`,
+                    path,
+                });
+            }
+        }
 
-// Validate minLength
-if (schema.minLength && typeof value === 'string' && value.length < schema.minLength) {
-errors.push({
-message: `String length is less than minLength for property: ${value}, minLength: ${schema.minLength}`,
-path,
-});
-}
+        // Validate pattern
+        if (schema.pattern && typeof value === 'string' && !new RegExp(schema.pattern).test(value)) {
+            errors.push({
+                message: `Pattern mismatch for property: ${value}, expected pattern: ${schema.pattern}`,
+                path,
+            });
+        }
 
-// Validate maxLength
-if (schema.maxLength && typeof value === 'string' && value.length > schema.maxLength) {
-errors.push({
-message: `String length is more than maxLength for property: ${value}, maxLength: ${schema.maxLength}`,
-path,
-});
-}
+        // Validate minLength
+        if (schema.minLength && typeof value === 'string' && value.length < schema.minLength) {
+            errors.push({
+                message: `String length is less than minLength for property: ${value}, minLength: ${schema.minLength}`,
+                path,
+            });
+        }
 
-// Validate anyOf
-if (schema.anyOf && !schema.anyOf.some(subschema => this.validate(this.resolveRef(subschema), value, path).length === 0)) {
-errors.push({
-message: `Value does not match anyOf`,
-path,
-});
-}
+        // Validate maxLength
+        if (schema.maxLength && typeof value === 'string' && value.length > schema.maxLength) {
+            errors.push({
+                message: `String length is more than maxLength for property: ${value}, maxLength: ${schema.maxLength}`,
+                path,
+            });
+        }
 
-// Validate oneOf
-if (schema.oneOf && schema.oneOf.filter(subschema => this.validate(this.resolveRef(subschema), value, path).length === 0).length !== 1) {
-errors.push({
-message: `Value does not match exactly oneOf`,
-path,
-});
-}
+        // Validate anyOf
+        if (schema.anyOf && !schema.anyOf.some(subschema => this.validate(this.resolveRef(subschema), value, path).length === 0)) {
+            errors.push({
+                message: `Value does not match anyOf`,
+                path,
+            });
+        }
 
-// Validate not
-if (schema.not && this.validate(this.resolveRef(schema.not), value, path).length === 0) {
-errors.push({
-message: `Value matches not schema`,
-path,
-});
-}
+        // Validate oneOf
+        if (schema.oneOf && schema.oneOf.filter(subschema => this.validate(this.resolveRef(subschema), value, path).length === 0).length !== 1) {
+            errors.push({
+                message: `Value does not match exactly oneOf`,
+                path,
+            });
+        }
 
-// Validate style and explode for arrays in query parameters
-if (schema.in === 'query' && schema.type === 'array' && schema.style && schema.explode !== undefined) {
-const arrayValue = Array.isArray(value) ? value : [value];
-if (schema.style === 'form' && schema.explode) {
-const itemsSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items; // Access the first item
-arrayValue.forEach((item, index) => {
-const resolvedItemSchema = itemsSchema?.$ref ? this.resolveRef(itemsSchema.$ref) : itemsSchema;
-if (resolvedItemSchema !== undefined) {
-errors.push(...this.validate(resolvedItemSchema, item, `${path}[${index}]`));
-}
-});
-} else {
-errors.push({
-message: `Unsupported style and explode combination for array in query parameter`,
-path,
-});
-}
-}
+        // Validate not
+        if (schema.not && this.validate(this.resolveRef(schema.not), value, path).length === 0) {
+            errors.push({
+                message: `Value matches not schema`,
+                path,
+            });
+        }
 
-return errors;
-}
+        // Validate style and explode for arrays in query parameters
+        if (schema.in === 'query' && schema.type === 'array' && schema.style && schema.explode !== undefined) {
+            const arrayValue = Array.isArray(value) ? value : [value];
+            if (schema.style === 'form' && schema.explode) {
+                const itemsSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items; // Access the first item
+                arrayValue.forEach((item, index) => {
+                    const resolvedItemSchema = itemsSchema?.$ref ? this.resolveRef(itemsSchema.$ref) : itemsSchema;
+                    if (resolvedItemSchema !== undefined) {
+                        errors.push(...this.validate(resolvedItemSchema, item, `${path}[${index}]`));
+                    }
+                });
+            } else {
+                errors.push({
+                    message: `Unsupported style and explode combination for array in query parameter`,
+                    path,
+                });
+            }
+        }
 
-private validateObject(schema: OpenApiSchema, data: any, path: string): ValidationError[] {
-const { properties, required, additionalProperties, readOnly } = schema;
-const errors: ValidationError[] = [];
+        return errors;
+    }
 
-// Check for readonly properties
-if (readOnly && data !== undefined) {
-errors.push({
-message: `Readonly property found with value: ${data}`,
-path,
-});
-}
+    private validateObject(schema: OpenApiSchema, data: any, path: string): ValidationError[] {
+        const { properties, required, additionalProperties, readOnly } = schema;
+        const errors: ValidationError[] = [];
 
-// Validate each property
-for (const propertyName in properties || {}) {
-const propertySchema = this.resolveRef(properties![propertyName]);
-const propertyValue = data[propertyName];
+        // Check for readonly properties
+        if (readOnly && data !== undefined) {
+            errors.push({
+                message: `Readonly property found with value: ${data}`,
+                path,
+            });
+        }
 
-// Check if required property is missing
-if (required && required.includes(propertyName) && propertyValue === undefined) {
-errors.push({
-message: `Required property missing: ${propertyName}`,
-path,
-});
-}
+        // Validate each property
+        for (const propertyName in properties || {}) {
+            const propertySchema = this.resolveRef(properties![propertyName]);
+            const propertyValue = data[propertyName];
 
-// Validate property recursively
-if (propertyValue !== undefined) {
-errors.push(...this.validate(propertySchema, propertyValue, `${path}.${propertyName}`));
-}
-}
+            // Check if required property is missing
+            if (required && required.includes(propertyName) && propertyValue === undefined) {
+                errors.push({
+                    message: `Required property missing: ${propertyName}`,
+                    path,
+                });
+            }
 
-// Validate additional properties
-if (additionalProperties && typeof additionalProperties === 'object' && properties) {
-for (const propertyName in data) {
-if (!properties[propertyName]) {
-const additionalItemSchema = additionalProperties.$ref ? this.resolveRef(additionalProperties.$ref) : additionalProperties;
-errors.push(...this.validate(additionalItemSchema, data[propertyName], `${path}.${propertyName}`));
-}
-}
-}
+            // Validate property recursively
+            if (propertyValue !== undefined) {
+                errors.push(...this.validate(propertySchema, propertyValue, `${path}.${propertyName}`));
+            }
+        }
 
-return errors;
-}
+        // Validate additional properties
+        if (additionalProperties && typeof additionalProperties === 'object' && properties) {
+            for (const propertyName in data) {
+                if (!properties[propertyName]) {
+                    const additionalItemSchema = additionalProperties.$ref ? this.resolveRef(additionalProperties.$ref) : additionalProperties;
+                    errors.push(...this.validate(additionalItemSchema, data[propertyName], `${path}.${propertyName}`));
+                }
+            }
+        }
 
-private validateArray(schema: OpenApiSchema, data: any[], path: string): ValidationError[] {
-const errors: ValidationError[] = [];
+        return errors;
+    }
 
-// Validate additionalItems
-if (schema.additionalItems !== undefined && schema.type === 'array') {
-if (typeof schema.additionalItems === 'boolean') {
-if (!schema.additionalItems && data.length > schema.itemsList!.length) {
-errors.push({
-message: `Additional items not allowed in array`,
-path,
-});
-}
-} else {
-const additionalItemSchema = Array.isArray(schema.additionalItems) ? schema.additionalItems[0] : schema.additionalItems;
-for (let i = schema.itemsList!.length; i < data.length; i++) {
-const resolvedItemSchema = additionalItemSchema.$ref ? this.resolveRef(additionalItemSchema.$ref) : additionalItemSchema;
-errors.push(...this.validate(resolvedItemSchema, data[i], `${path}[${i}]`));
-}
-}
-}
+    private validateArray(schema: OpenApiSchema, data: any[], path: string): ValidationError[] {
+        const errors: ValidationError[] = [];
 
-// Validate style and explode for arrays in query parameters
-if (schema.in === 'query' && schema.type === 'array' && schema.style && schema.explode !== undefined) {
-const arrayValue = Array.isArray(data) ? data : [data];
-if (schema.style === 'form' && schema.explode) {
-const itemsSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items; // Access the first item
+        // Validate additionalItems
+        if (schema.additionalItems !== undefined && schema.type === 'array') {
+            if (typeof schema.additionalItems === 'boolean') {
+                if (!schema.additionalItems && data.length > schema.itemsList!.length) {
+                    errors.push({
+                        message: `Additional items not allowed in array`,
+                        path,
+                    });
+                }
+            } else {
+                const additionalItemSchema = Array.isArray(schema.additionalItems) ? schema.additionalItems[0] : schema.additionalItems;
+                for (let i = schema.itemsList!.length; i < data.length; i++) {
+                    const resolvedItemSchema = additionalItemSchema.$ref ? this.resolveRef(additionalItemSchema.$ref) : additionalItemSchema;
+                    errors.push(...this.validate(resolvedItemSchema, data[i], `${path}[${i}]`));
+                }
+            }
+        }
 
-arrayValue.forEach((item, index) => {
-const resolvedItemSchema = itemsSchema?.$ref ? this.resolveRef(itemsSchema.$ref) : itemsSchema;
-if (resolvedItemSchema !== undefined) {
-errors.push(...this.validate(resolvedItemSchema, item, `${path}[${index}]`));
-}
-});
-} else {
-errors.push({
-message: `Unsupported style and explode combination for array in query parameter`,
-path,
-});
-}
-}
+        // Validate style and explode for arrays in query parameters
+        if (schema.in === 'query' && schema.type === 'array' && schema.style && schema.explode !== undefined) {
+            const arrayValue = Array.isArray(data) ? data : [data];
+            if (schema.style === 'form' && schema.explode) {
+                const itemsSchema = Array.isArray(schema.items) ? schema.items[0] : schema.items; // Access the first item
 
-return errors;
-}
+                arrayValue.forEach((item, index) => {
+                    const resolvedItemSchema = itemsSchema?.$ref ? this.resolveRef(itemsSchema.$ref) : itemsSchema;
+                    if (resolvedItemSchema !== undefined) {
+                        errors.push(...this.validate(resolvedItemSchema, item, `${path}[${index}]`));
+                    }
+                });
+            } else {
+                errors.push({
+                    message: `Unsupported style and explode combination for array in query parameter`,
+                    path,
+                });
+            }
+        }
 
-private validate(schema: OpenApiSchema, data: any, path: string = ''): ValidationError[] {
-const resolvedSchema = this.resolveRef(schema);
-const errors: ValidationError[] = [];
+        return errors;
+    }
 
-// Validate type-specific constraints
-errors.push(...this.validateProperty(resolvedSchema, data, path));
+    private validate(schema: OpenApiSchema, data: any, path: string = ''): ValidationError[] {
+        const resolvedSchema = this.resolveRef(schema);
+        const errors: ValidationError[] = [];
 
-if (resolvedSchema.type === 'object') {
-errors.push(...this.validateObject(resolvedSchema, data, path));
-} else if (resolvedSchema.type === 'array') {
-errors.push(...this.validateArray(resolvedSchema, data, path));
-}
+        // Validate type-specific constraints
+        errors.push(...this.validateProperty(resolvedSchema, data, path));
 
-return errors;
-}
+        if (resolvedSchema.type === 'object') {
+            errors.push(...this.validateObject(resolvedSchema, data, path));
+        } else if (resolvedSchema.type === 'array') {
+            errors.push(...this.validateArray(resolvedSchema, data, path));
+        }
 
-public validateAgainstDefinition(definitionName: string, data: any): ValidationResult {
-const definitionSchema = this.resolveRef(`#/definitions/${definitionName}`);
-let validationErrors: ValidationError[] = [];
-if (!isNullOrUndefined(definitionSchema)) {
-validationErrors = this.validate(definitionSchema, data);
-}
+        return errors;
+    }
 
-return {
-isValid: validationErrors.length === 0,
-errors: validationErrors,
-};
-}
+    public validateAgainstDefinition(definitionName: string, data: any): ValidationResult {
+        const definitionSchema = this.resolveRef(`#/definitions/${definitionName}`);
+        let validationErrors: ValidationError[] = [];
+        if (!isNullOrUndefined(definitionSchema)) {
+            validationErrors = this.validate(definitionSchema, data);
+        }
+
+        return {
+            isValid: validationErrors.length === 0,
+            errors: validationErrors,
+        };
+    }
 }
 
 
