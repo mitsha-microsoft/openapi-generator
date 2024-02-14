@@ -139,7 +139,11 @@
             <artifactId>openapi-generator</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-ai-openai</artifactId>
+		    <version>1.0.0-beta.6</version>
+		</dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>

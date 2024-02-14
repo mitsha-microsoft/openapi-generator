@@ -204,7 +204,7 @@ public class OpenApiService {
         	userPrompt += "Expected Response Code \n\n" + apiRequest.expectedResponseCode + "\n\n";
         	userPrompt += "Response Code \n\n" + apiRequest.responseCode + "\n\n";
         	userPrompt += "Swagger schema \n\n" + apiRequest.swagger + "\n\n";
-        	userPrompt += "I need to get the recommendation and modified complete swagger as only json output without any quote or extra text.";
+        	userPrompt += "I need to get the recommendation and modified complete swagger as only json output";
     	}
     	
 		chatMessages.add(new ChatRequestUserMessage(userPrompt));

@@ -226,8 +226,6 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 		// supportingFiles.add(new SupportingFile("gitignore", "", ".gitignore"));
 		// supportingFiles.add(new SupportingFile("npmignore", "", ".npmignore"));
 		supportingFiles.add(new SupportingFile("HOW_TO_RUN_TESTS.mustache", "", "HOW_TO_RUN_TESTS.md"));
-		supportingFiles.add(new SupportingFile("playwright.config.mustache", "", "playwright.config.ts"));
-		supportingFiles.add(new SupportingFile("package.mustache", "", "package.json"));
 
 		if (additionalProperties.containsKey(SEPARATE_MODELS_AND_API)) {
 			boolean separateModelsAndApi = Boolean

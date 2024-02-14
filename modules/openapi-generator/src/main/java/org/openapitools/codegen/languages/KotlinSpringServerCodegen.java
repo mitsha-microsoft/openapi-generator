@@ -910,7 +910,7 @@ public class KotlinSpringServerCodegen extends AbstractKotlinCodegen
                 final List<CodegenParameter> allParams = operation.allParams;
                 if (allParams != null) {
                     if (this.isAppendRequestToHandler()) {
-                        allParams.add(new RequestCodegenParameter());
+                        allParams.add(new RequestCodegenParameter(true));
                     }
                     allParams.forEach(param ->
                             // This is necessary in case 'modelMutable' is enabled,
