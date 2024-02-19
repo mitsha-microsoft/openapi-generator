@@ -207,6 +207,10 @@ public class OpenApiService {
         	userPrompt += "I need to get the recommendation and modified complete swagger as only json output";
     	}
     	
+    	if(apiRequest.isSummaryInsight) {
+    		// only pass user prompts
+    		chatMessages = new ArrayList<>();
+    	}
 		chatMessages.add(new ChatRequestUserMessage(userPrompt));
     	
 		String engine = "gpt35";

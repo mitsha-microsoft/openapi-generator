@@ -22,5 +22,7 @@ public class APIRequest {
 	
 	public String engine;
 	
+	public boolean isSummaryInsight = false;
+	
 
 }
