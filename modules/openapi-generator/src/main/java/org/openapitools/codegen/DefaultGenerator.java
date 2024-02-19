@@ -745,6 +745,9 @@ public class DefaultGenerator implements Generator {
                 	// create map of operation with all the methods
                 	for(CodegenOperation op : ops) {
 						String method = op.httpMethod.toLowerCase(Locale.ROOT);
+						if ("cartItemIdGet".equals(op.operationId) || "cartItemIdDelete".equals(op.operationId) || "cartGet".equals(op.operationId)) {
+							continue;
+						}
 						if(operationMap.containsKey(method)) {
 							OperationMap map = operationMap.get(method);
 						    map.getOperation().add(op);

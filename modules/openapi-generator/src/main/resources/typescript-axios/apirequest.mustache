@@ -1,72 +1,34 @@
 import { test, expect } from '@playwright/test';
-import { createRequestFunction, sendRequest } from '../../.lib/common';
+import { createRequest, sendRequest, addTestResultAttachments } from '../.lib/common';
 import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
-import { SwaggerValidator } from '../../.lib/schemaValidator.ts';
-import { TestDataWithAllParams } from '../../.lib/swaggerSchema.ts';
+import { SwaggerValidator } from '../.lib/schemaValidator.ts';
 
-let swaggerPath = __dirname + '/../../../swagger.json'
+let swaggerPath = __dirname + '/../../swagger.json'
 let validator = new SwaggerValidator(swaggerPath);
 
-let swaggerJSON = validator.getSwagger();
+let ApiSpecJSON = validator.getSwagger();
 
 {{#operations}}
 {{#operation}}
 // {{summary}}
-test.describe('{{operationId}} valid cases', function() {
-    var testCases: any[] = testData["{{operationId}}"].filter(tc => tc["isValid"]);
-    testCases.map(tc => {
-        test(tc["summary"], async () => {
-            test.info().attach("Generated Request", { body: JSON.stringify(tc["request"]) });
+test.describe('Valid cases', function() {
+    let validTestCases: any[] = testData["{{operationId}}"].filter(testCase => testCase["isValid"]);
+    validTestCases.map(testCase => {
+        test(testCase["summary"], async() => {
 
-            let request = await createRequestFunction('{{operationId}}', '0', tc["request"]);
+			// create request with test case data
+            let request = await createRequest('{{operationId}}', '0', testCase["request"]);
 
+			// send request
             let response = await sendRequest(request);
             
-            test.info().attachments.push({
-                name : "Request",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(tc['request']))
-            });
+            // add test case info to test result attachments
+            addTestResultAttachments(test, testCase, response, ApiSpecJSON);            
             
-            test.info().attachments.push({
-                name : "OperationId",
-                contentType : "application/json",
-                body : Buffer.from('{{operationId}}')
-            });
+            // validate response code
+            expect(response.status).toBe(testCase["response"]["statusCode"]);
 
-            test.info().attachments.push({
-                name : "Response",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(response.data))
-            });
-
-            test.info().attachments.push({
-                name : "Response Code",
-                contentType : "application/json",
-                body : Buffer.from(response.status.toString())
-            });
-
-            test.info().attachments.push({
-                name : "Expected Response Code",
-                contentType : "application/json",
-                body : Buffer.from(tc["response"]["statusCode"].toString())
-            });
-
-            test.info().attachments.push({
-                name : "Summary",
-                contentType : "application/json",
-                body : Buffer.from(tc["summary"])
-            });
-            
-            test.info().attachments.push({
-                name : "Swagger",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(swaggerJSON))
-            });
-            
-            expect(response.status).toBe(tc["response"]["statusCode"]);
-
-            // Check response in case of valid test expected outcome.
+            // validate response schema
             let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
             let errors: string[] = []
             validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
@@ -76,58 +38,29 @@ test.describe('{{operationId}} valid cases', function() {
     });
 });
 
-test.describe('{{operationId}} invalid cases', function() {
-    var testCases: any[] = testData["{{operationId}}"].filter(tc => !tc["isValid"]);
-    testCases.map(tc => {
-        test(tc["summary"], async () => {
+test.describe('Error handling cases', function() {
+    let invalidTestCases: any[] = testData["{{operationId}}"].filter(testCase => !testCase["isValid"]);
+    invalidTestCases.map(testCase => {
+        test(testCase["summary"], async() => {
 
-            let request = await createRequestFunction('{{operationId}}', '0', tc["request"]);
+			// create request with test case data
+            let request = await createRequest('{{operationId}}', '0', testCase["request"]);
 
+			// send request
             let response = await sendRequest(request);
             
-            test.info().attachments.push({
-                name : "OperationId",
-                contentType : "application/json",
-                body : Buffer.from('{{operationId}}')
-            });
+            // add test case info to test result attachments            
+            addTestResultAttachments(test, testCase, response, ApiSpecJSON);            
             
-            test.info().attachments.push({
-                name : "Request",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(tc['request']))
-            });
-
-            test.info().attachments.push({
-                name : "Response",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(response.data))
-            });
-
-            test.info().attachments.push({
-                name : "Response Code",
-                contentType : "application/json",
-                body : Buffer.from(response.status.toString())
-            });
-
-            test.info().attachments.push({
-                name : "Expected Response Code",
-                contentType : "application/json",
-                body : Buffer.from(tc["response"]["statusCode"].toString())
-            });
-
-            test.info().attachments.push({
-                name : "Summary",
-                contentType : "application/json",
-                body : Buffer.from(tc["summary"])
-            });
+            // validate response code           
+            expect(response.status).toBe(testCase["response"]["statusCode"]);
             
-            test.info().attachments.push({
-                name : "Swagger",
-                contentType : "application/json",
-                body : Buffer.from(JSON.stringify(swaggerJSON))
-            });
+            // validate response schema
+            let validationErrors = validator.validateAgainstDefinition('CartItemResponse', response.data);
+            let errors: string[] = []
+            validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
             
-            expect(response.status).toBe(tc["response"]["statusCode"]);
         });
     });
 });

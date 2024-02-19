@@ -19,6 +19,8 @@ import path from 'path';
 
 let basePath = apiTestConfig?.basePath ?? BASE_PATH;
 
+const applicationJson = "application/json";
+
 const configurationParameter : ConfigurationParameters = {
     basePath: basePath  
 }
@@ -133,7 +135,7 @@ export const toPathString = function (url: URL) {
 }
 
 
-export const createRequestFunction = async (operationId:string, scenarioIndex:string, testData:any) => {
+export const createRequest = async (operationId:string, scenarioIndex:string, testData:any) => {
     let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
     let path = data["path"];
     let pathParams = data["parameters"]["pathParams"];
@@ -402,3 +404,48 @@ export const sendRequest = async (axiosRequestArgs: any) => {
             return errorResponse;
         }
 }
+
+export const addTestResultAttachments = (test:any, testCase: any, response: any, apiSpecJSON:any) => {
+    test.info().attachments.push({
+        name: "OperationId",
+        contentType: applicationJson,
+        body: Buffer.from('cartGet')
+    });
+
+    test.info().attachments.push({
+        name: "Request",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(testCase['request']))
+    });
+
+    test.info().attachments.push({
+        name: "Response",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(response.data))
+    });
+
+    test.info().attachments.push({
+        name: "Response Code",
+        contentType: applicationJson,
+        body: Buffer.from(response.status.toString())
+    });
+
+    test.info().attachments.push({
+        name: "Expected Response Code",
+        contentType: applicationJson,
+        body: Buffer.from(testCase["response"]["statusCode"].toString())
+    });
+
+    test.info().attachments.push({
+        name: "Summary",
+        contentType: applicationJson,
+        body: Buffer.from(testCase["summary"])
+    });
+
+    test.info().attachments.push({
+        name: "Swagger",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(apiSpecJSON))
+    });
+}
+

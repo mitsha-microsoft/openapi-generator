@@ -108,7 +108,7 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 
 		outputFolder = "generated-code/typescript-axios";
 		embeddedTemplateDir = templateDir = "typescript-axios";
-		testFolder = "tests";
+		testFolder = "";
 
 		this.cliOptions.add(new CliOption(NPM_REPOSITORY,
 				"Use this property to set an url of your private npmRepo in the package.json"));
@@ -225,7 +225,7 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 		// "git_push.sh"));
 		// supportingFiles.add(new SupportingFile("gitignore", "", ".gitignore"));
 		// supportingFiles.add(new SupportingFile("npmignore", "", ".npmignore"));
-		supportingFiles.add(new SupportingFile("HOW_TO_RUN_TESTS.mustache", "", "HOW_TO_RUN_TESTS.md"));
+		supportingFiles.add(new SupportingFile("HOW_TO_RUN_TESTS.mustache", "", "README.md"));
 
 		if (additionalProperties.containsKey(SEPARATE_MODELS_AND_API)) {
 			boolean separateModelsAndApi = Boolean
