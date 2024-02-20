@@ -1,5 +1,5 @@
 import { test, expect } from '@playwright/test';
-import { createRequest, sendRequest, addTestResultAttachments } from '../.lib/common';
+import { createRequest, sendRequest, addTestResultAttachments, addSchemaValidationErrorsToAttachments } from '../.lib/common';
 import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
 import { SwaggerValidator } from '../.lib/schemaValidator.ts';
 
@@ -23,7 +23,7 @@ test.describe('Valid cases', function() {
             let response = await sendRequest(request);
             
             // add test case info to test result attachments
-            addTestResultAttachments(test, testCase, response, ApiSpecJSON);            
+            addTestResultAttachments('{{operationId}}',test, testCase, response, ApiSpecJSON);            
             
             // validate response code
             expect(response.status).toBe(testCase["response"]["statusCode"]);
@@ -32,6 +32,10 @@ test.describe('Valid cases', function() {
             let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
             let errors: string[] = []
             validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            
+            // adding schema validation errors to attachments
+            addSchemaValidationErrorsToAttachments(test, validationErrors.errors.map(e => e.message));
+            
             expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
             
         });
@@ -50,7 +54,7 @@ test.describe('Error handling cases', function() {
             let response = await sendRequest(request);
             
             // add test case info to test result attachments            
-            addTestResultAttachments(test, testCase, response, ApiSpecJSON);            
+            addTestResultAttachments('{{operationId}}', test, testCase, response, ApiSpecJSON);            
             
             // validate response code           
             expect(response.status).toBe(testCase["response"]["statusCode"]);
@@ -59,6 +63,10 @@ test.describe('Error handling cases', function() {
             let validationErrors = validator.validateAgainstDefinition('CartItemResponse', response.data);
             let errors: string[] = []
             validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            
+            // adding schema validation errors to attachments
+            addSchemaValidationErrorsToAttachments(test, validationErrors.errors.map(e => e.message));
+            
             expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
             
         });

@@ -1,4 +1,3 @@
-/* tslint:disable */
 /* eslint-disable */
 // @ts-ignore
 import globalAxios from 'axios';
@@ -405,7 +404,18 @@ export const sendRequest = async (axiosRequestArgs: any) => {
         }
 }
 
-export const addTestResultAttachments = (test:any, testCase: any, response: any, apiSpecJSON:any) => {
+export const addTestResultAttachments = (operationId:string, test:any, testCase: any, response: any, apiSpecJSON:any) => {
+    let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
+    let path = data["path"];
+    let method = data["httpMethod"];
+    let apiPath = "["+method+"]"+path;
+    
+    test.info().attachments.push({
+        name: "ApiPath",
+        contentType: applicationJson,
+        body: Buffer.from(apiPath)
+    });
+    
     test.info().attachments.push({
         name: "OperationId",
         contentType: applicationJson,
@@ -449,3 +459,10 @@ export const addTestResultAttachments = (test:any, testCase: any, response: any,
     });
 }
 
+export const addSchemaValidationErrorsToAttachments = (test:any, errors: string[]) => {
+    test.info().attachments.push({
+        name: "SchemaValidationErrors",
+        contentType: applicationJson,
+        body: Buffer.from(errors.join("\n"))
+    });
+}

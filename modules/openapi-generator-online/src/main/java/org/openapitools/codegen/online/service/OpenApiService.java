@@ -1,5 +1,6 @@
 package org.openapitools.codegen.online.service;
 
+import java.text.MessageFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
@@ -21,6 +22,7 @@ import com.azure.ai.openai.models.ChatRequestSystemMessage;
 import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.azure.ai.openai.models.ChatResponseMessage;
 import com.azure.core.credential.AzureKeyCredential;
+
 
 @Service
 public class OpenApiService {
@@ -198,19 +200,59 @@ public class OpenApiService {
     	if(StringUtils.isNotEmpty(apiRequest.prompt)) {
     		userPrompt = apiRequest.prompt;
     	}else {
-    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
-        	userPrompt += "Api Request \n\n" + apiRequest.requestPayload + "\n\n";
-        	userPrompt += "Api Response \n\n" + apiRequest.response + "\n\n";
-        	userPrompt += "Expected Response Code \n\n" + apiRequest.expectedResponseCode + "\n\n";
-        	userPrompt += "Response Code \n\n" + apiRequest.responseCode + "\n\n";
-        	userPrompt += "Swagger schema \n\n" + apiRequest.swagger + "\n\n";
-        	userPrompt += "I need to get the recommendation and modified complete swagger as only json output";
+    		
+    		userPrompt = "I ran an API test and it failed. Provide a brief summary of what went wrong. Then, provide some recommendations in the markdown format how to fix the issue with code snippets.\r\n"
+    				+ "\r\n"
+    				+ "Consider the following when providing recommendations:\r\n"
+    				+ "- Generally, if the API response is an error, and it contains specific error information, and the API spec lacks this detail, then the spec could be 'under-speced' and needs to be updated to bring it in line with the API impelementation.\r\n"
+    				+ "- When comparing the spec with the implementation, base your recommendation on what the spec says for the specific operation that was executed by the test (POST, GET, PUT, etc).\r\n"
+    				+ "- If the implementation and spec disagree about a constraint, then the options are to update the spec to align it with the implementation, or to align the implementation with the spec. In this case, provide alternative options with code snippets so the user can choose. If the option is about updating the API spec, then provide a code snippet.\r\n"
+    				+ "\r\n"
+    				+ "[TEST NAME]:\r\n"
+    				+ "{0}\r\n"
+    				+ "\r\n"
+    				+ "[TEST EXPECTED RESPONSE CODE]:\r\n"
+    				+ "{1}\r\n"
+    				+ "\r\n"
+    				+ "[TEST ACTUAL RESPONSE CODE]:\r\n"
+    				+ "{2}\r\n"
+    				+ "\r\n"
+    				+ "[API REQUEST]:\r\n"
+    				+ "{3}:\r\n"
+    				+ "{4}\r\n"
+    				+ "\r\n"
+    				+ "[API RESPONSE]:\r\n"
+    				+ "```\r\n"
+    				+ "{5}\r\n"
+    				+ "```\r\n"
+    				+ "\r\n"
+    				+ "[API SPEC]:\r\n"
+    				+ "```\r\n"
+    				+ "{6}\r\n"
+    				+ "```\r\n"
+    				+ "\r\n";
+    		
+    		if(!StringUtils.isEmpty(apiRequest.implementationCode))
+    			userPrompt +=  "[IMPLEMENTATION CODE]:\r\n"
+        				+ "```\r\n"
+        				+ "{7}\r\n"
+        				+ "```";
+    		
+    		MessageFormat mf = new MessageFormat(userPrompt);
+    		userPrompt = mf.format(new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode});
+//    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
+//        	userPrompt += "Api Request \n\n" + apiRequest.requestPayload + "\n\n";
+//        	userPrompt += "Api Response \n\n" + apiRequest.response + "\n\n";
+//        	userPrompt += "Expected Response Code \n\n" + apiRequest.expectedResponseCode + "\n\n";
+//        	userPrompt += "Response Code \n\n" + apiRequest.responseCode + "\n\n";
+//        	userPrompt += "Swagger schema \n\n" + apiRequest.swagger + "\n\n";
+//        	userPrompt += "I need to get the recommendation and modified complete swagger as only json output";
     	}
     	
-    	if(apiRequest.isSummaryInsight) {
+    	//if(apiRequest.isSummaryInsight) {
     		// only pass user prompts
     		chatMessages = new ArrayList<>();
-    	}
+    	//}
 		chatMessages.add(new ChatRequestUserMessage(userPrompt));
     	
 		String engine = "gpt35";

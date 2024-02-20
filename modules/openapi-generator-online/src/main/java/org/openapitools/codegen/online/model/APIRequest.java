@@ -24,5 +24,8 @@ public class APIRequest {
 	
 	public boolean isSummaryInsight = false;
 	
+	public String apiPath;
+	public String implementationCode;
+	
 
 }

@@ -116,11 +116,21 @@ export class SwaggerValidator {
         }
 
         // Validate type
-        if (isNullOrUndefined(value) && schema.type && typeof value !== schema.type) {
+        if (!isNullOrUndefined(value) && schema.type && typeof value !== schema.type && schema.type !== 'integer') {
             errors.push({
-                message: `Type mismatch for property: ${value}, expected type: ${schema.type}`,
+                message: `Implementation returns wrong data type. Type mismatch for property path: ${path}, expected type: ${schema.type} found ${typeof value}`,
                 path,
             });
+        }
+
+        // Validate additional constraints for integer
+        if (schema.type === 'integer' && typeof value !== 'number') {
+
+            errors.push({
+                message: `Implementation returns wrong data type. Type mismatch for property path: ${path}, expected type: ${schema.type} found ${typeof value}`,
+                path,
+            });
+            
         }
 
         // Validate format
@@ -128,7 +138,7 @@ export class SwaggerValidator {
             const dateTimeRegex = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d{2,7})?Z$/;
             if (!dateTimeRegex.test(value)) {
                 errors.push({
-                    message: `Invalid date-time format for property: ${value}`,
+                    message: `Invalid date-time format for property path : ${path} found value as ${value}`,
                     path,
                 });
             }
@@ -137,7 +147,7 @@ export class SwaggerValidator {
         // Validate pattern
         if (schema.pattern && typeof value === 'string' && !new RegExp(schema.pattern).test(value)) {
             errors.push({
-                message: `Pattern mismatch for property: ${value}, expected pattern: ${schema.pattern}`,
+                message: `Pattern mismatch for property path : ${path}, expected pattern: ${schema.pattern}, found ${value}`,
                 path,
             });
         }
@@ -145,7 +155,7 @@ export class SwaggerValidator {
         // Validate minLength
         if (schema.minLength && typeof value === 'string' && value.length < schema.minLength) {
             errors.push({
-                message: `String length is less than minLength for property: ${value}, minLength: ${schema.minLength}`,
+                message: `String length is less than minLength for property path: ${path}, minLength: ${schema.minLength} found value ${value}`,
                 path,
             });
         }
@@ -153,7 +163,7 @@ export class SwaggerValidator {
         // Validate maxLength
         if (schema.maxLength && typeof value === 'string' && value.length > schema.maxLength) {
             errors.push({
-                message: `String length is more than maxLength for property: ${value}, maxLength: ${schema.maxLength}`,
+                message: `String length is more than maxLength for property path: ${path}, minLength: ${schema.minLength} found value ${value}`,
                 path,
             });
         }
@@ -217,7 +227,7 @@ export class SwaggerValidator {
         }
 
         // Validate each property
-        for (const propertyName in properties || {}) {
+        for (const propertyName in data) {
             const propertySchema = this.resolveRef(properties![propertyName]);
             const propertyValue = data[propertyName];
 
@@ -229,9 +239,17 @@ export class SwaggerValidator {
                 });
             }
 
-            // Validate property recursively
-            if (propertyValue !== undefined) {
-                errors.push(...this.validate(propertySchema, propertyValue, `${path}.${propertyName}`));
+            // Check if property is defined in the schema
+            if (!propertySchema) {
+                errors.push({
+                    message: `Spec is out of sync with implementation. Property "${propertyName}" is not defined in the schema`,
+                    path,
+                });
+            } else {
+                // Validate property recursively
+                if (propertyValue !== undefined) {
+                    errors.push(...this.validate(propertySchema, propertyValue, `${path}.${propertyName}`));
+                }
             }
         }
 
@@ -321,5 +339,3 @@ export class SwaggerValidator {
         };
     }
 }
-
-
