@@ -27,5 +27,7 @@ public class APIRequest {
 	public String apiPath;
 	public String implementationCode;
 	
+	public String schemaValidationErrors;
+	
 
 }

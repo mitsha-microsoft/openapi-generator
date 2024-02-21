@@ -237,10 +237,14 @@ public class OpenApiService {
     			userPrompt +=  "[IMPLEMENTATION CODE]:\r\n"
         				+ "```\r\n"
         				+ "{7}\r\n"
-        				+ "```";
+        				+ "```\r\n";
+    		
+    		if(!StringUtils.isEmpty(apiRequest.schemaValidationErrors))
+    			userPrompt +=  "[API RESPONSE SCHEMA VALIDATION ERRORS]:\r\n"
+        				+ "{8}\r\n";
     		
     		MessageFormat mf = new MessageFormat(userPrompt, Locale.ROOT);
-    		userPrompt = mf.format( new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode});
+    		userPrompt = mf.format( new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode, apiRequest.schemaValidationErrors});
 //    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
 //        	userPrompt += "Api Request \n\n" + apiRequest.requestPayload + "\n\n";
 //        	userPrompt += "Api Response \n\n" + apiRequest.response + "\n\n";
