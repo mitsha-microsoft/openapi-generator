@@ -238,8 +238,8 @@ public class OpenApiService {
         				+ "{7}\r\n"
         				+ "```";
     		
-    		MessageFormat mf = new MessageFormat(userPrompt);
-    		userPrompt = mf.format(new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode});
+    		MessageFormat mf = new MessageFormat(userPrompt, Locale.ROOT);
+    		userPrompt = mf.format( new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode});
 //    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
 //        	userPrompt += "Api Request \n\n" + apiRequest.requestPayload + "\n\n";
 //        	userPrompt += "Api Response \n\n" + apiRequest.response + "\n\n";

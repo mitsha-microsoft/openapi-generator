@@ -115,8 +115,12 @@ export class SwaggerValidator {
             return errors; // Nullable required field is considered valid
         }
 
-        // Validate type
-        if (!isNullOrUndefined(value) && schema.type && typeof value !== schema.type && schema.type !== 'integer') {
+        if (!isNullOrUndefined(value) && schema.type && schema.type === 'array' && !Array.isArray(value)) {
+            errors.push({
+                message: `Implementation returns wrong data type. Type mismatch for property path: ${path}, expected type: array found ${typeof value}`,
+                path,
+            });
+        }else if (!isNullOrUndefined(value) && schema.type && typeof value !== schema.type && schema.type !== 'integer' && schema.type !== 'array' ) {
             errors.push({
                 message: `Implementation returns wrong data type. Type mismatch for property path: ${path}, expected type: ${schema.type} found ${typeof value}`,
                 path,

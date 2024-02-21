@@ -73,6 +73,8 @@ public class CodegenOperation {
     public String operationIdSnakeCase;
     public List<TestScenario> scenarios;
     public String  jsonSchema;
+    public String responseSchema400;
+    
     /**
      * Check if there's at least one parameter
      *

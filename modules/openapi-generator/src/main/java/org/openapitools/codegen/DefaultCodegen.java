@@ -4933,7 +4933,13 @@ public class DefaultCodegen implements CodegenConfig {
         
         try {
 			op.jsonSchema = Json.mapper().writeValueAsString(op.allParams);
-		} catch (JsonProcessingException e) {
+			List<CodegenResponse> responses = op.responses;
+			for(CodegenResponse response : responses) {
+				if(response.code.equals("400")) {
+					op.responseSchema400 = response.baseType;
+				}
+			}
+        } catch (JsonProcessingException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}

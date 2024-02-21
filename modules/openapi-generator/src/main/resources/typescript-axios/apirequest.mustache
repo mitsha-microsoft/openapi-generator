@@ -60,7 +60,7 @@ test.describe('Error handling cases', function() {
             expect(response.status).toBe(testCase["response"]["statusCode"]);
             
             // validate response schema
-            let validationErrors = validator.validateAgainstDefinition('CartItemResponse', response.data);
+            let validationErrors = validator.validateAgainstDefinition('{{responseSchema400}}', response.data);
             let errors: string[] = []
             validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
             
