@@ -227,6 +227,7 @@ public class OpenApiService {
     				+ "```\r\n"
     				+ "\r\n"
     				+ "[API SPEC]:\r\n"
+    				+ "swagger.json\r\n"
     				+ "```\r\n"
     				+ "{6}\r\n"
     				+ "```\r\n"
