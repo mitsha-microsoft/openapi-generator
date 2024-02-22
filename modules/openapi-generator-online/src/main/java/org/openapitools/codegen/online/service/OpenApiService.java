@@ -2,14 +2,22 @@ package org.openapitools.codegen.online.service;
 
 import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.openapitools.codegen.online.model.APIRequest;
 import org.openapitools.codegen.online.model.APIRequestInsight;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.client.RestTemplate;
 
 import com.azure.ai.openai.OpenAIClient;
 import com.azure.ai.openai.OpenAIClientBuilder;
@@ -23,16 +31,21 @@ import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.azure.ai.openai.models.ChatResponseMessage;
 import com.azure.core.credential.AzureKeyCredential;
 
-
 @Service
 public class OpenApiService {
 
 	private static final String OPENAI_API_KEY = "92eb2e08ed17450b80de7f7d24a94388";
     private static final String ENDPOINT = "https://apitesting.openai.azure.com/";
+    private static final String CHAT_COMPLETION_ENDPOINT = "https://apitesting.openai.azure.com/openai/deployments/{0}/completions?api-version=2023-05-15";
+    
     private OpenAIClient client; 
     
-    public OpenApiService() {
-    	
+    @Bean
+    public RestTemplate restTemplate() {
+        return new RestTemplate();
+    }
+    
+	public OpenApiService() {
     	this.client = new OpenAIClientBuilder()
         	    .credential(new AzureKeyCredential(OPENAI_API_KEY))
         	    .endpoint(ENDPOINT)
@@ -257,6 +270,7 @@ public class OpenApiService {
     		// only pass user prompts
     		chatMessages = new ArrayList<>();
     	//}
+		userPrompt = userPrompt.replaceAll("'", "''");
 		chatMessages.add(new ChatRequestUserMessage(userPrompt));
     	
 		String engine = "gpt35";
@@ -283,6 +297,83 @@ public class OpenApiService {
     	insight.prompt = userPrompt;
     	
 		return new ResponseEntity<>(insight, org.springframework.http.HttpStatus.OK);
+		
+	}
+	
+	public ResponseEntity<String> streamApiTestInsight(APIRequest apiRequest) {
+		
+		String userPrompt = "";
+		
+		if(StringUtils.isNotEmpty(apiRequest.prompt)) {
+    		userPrompt = apiRequest.prompt;
+    	}else {
+    		
+    		userPrompt = "I ran an API test and it failed. Under the heading, \"## What seems the problem?\" provide a brief summary of what may have gone wrong (you do not need to state the test name here). Then, provide the best recommendation in markdown format on how to fix the issue under the heading \"## Recommendation\". If the recommendation has multiple options, then list these subsections with the headings \"### Option 1\", \"### Option 2\" and so on.\r\n"
+    				+ " \r\n"
+    				+ "Consider the following when providing the recommendation:\r\n"
+    				+ "- When comparing the API swagger spec with the implementation, base your recommendation on what the spec says for the specific operation that was executed by the test (POST, GET, PUT, etc).\r\n"
+    				+ "- If the implementation and spec disagree about a constraint, then the options are to update the spec to align it with the implementation, or to align the implementation with the spec. In this case, provide alternative options with code snippets so the user can choose. If the option is about updating the API spec, then provide a code snippet.\r\n"
+    				+ "[TEST NAME]:\r\n"
+    				+ "{0}\r\n"
+    				+ "\r\n"
+    				+ "[TEST EXPECTED RESPONSE CODE]:\r\n"
+    				+ "{1}\r\n"
+    				+ "\r\n"
+    				+ "[TEST ACTUAL RESPONSE CODE]:\r\n"
+    				+ "{2}\r\n"
+    				+ "\r\n"
+    				+ "[API REQUEST]:\r\n"
+    				+ "{3}:\r\n"
+    				+ "{4}\r\n"
+    				+ "\r\n"
+    				+ "[API RESPONSE]:\r\n"
+    				+ "```\r\n"
+    				+ "{5}\r\n"
+    				+ "```\r\n"
+    				+ "\r\n"
+    				+ "[API SPEC]:\r\n"
+    				+ "swagger.json\r\n"
+    				+ "```\r\n"
+    				+ "{6}\r\n"
+    				+ "```\r\n"
+    				+ "\r\n";
+    		
+    		if(!StringUtils.isEmpty(apiRequest.implementationCode))
+    			userPrompt +=  "[IMPLEMENTATION CODE]:\r\n"
+        				+ "```\r\n"
+        				+ "{7}\r\n"
+        				+ "```\r\n";
+    		
+    		if(!StringUtils.isEmpty(apiRequest.schemaValidationErrors))
+    			userPrompt +=  "[API RESPONSE SCHEMA VALIDATION ERRORS]:\r\n"
+        				+ "{8}\r\n";
+    		
+    		userPrompt = userPrompt.replaceAll("'", "''");
+    		MessageFormat mf = new MessageFormat(userPrompt, Locale.ROOT);
+    		userPrompt = mf.format( new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode, apiRequest.schemaValidationErrors});
+    	}
+    	
+		String engine = "gpt35";
+		if(StringUtils.isNotEmpty(apiRequest.engine)) {
+			engine = apiRequest.engine;
+		}
+    	
+		MessageFormat mf = new MessageFormat(CHAT_COMPLETION_ENDPOINT, Locale.ROOT);
+		String url = mf.format(new Object[] {engine});
+
+		HttpHeaders headers = new HttpHeaders();
+        headers.set("api-key", OPENAI_API_KEY);
+        headers.set("Content-Type", "application/json");
+        //headers.set("Accept", "text/event-stream");
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("prompt", userPrompt);
+        requestBody.put("stream", true);
+        
+        
+        HttpEntity<Map<String, Object>> requestEntity = new HttpEntity<>(requestBody, headers);
+
+        return restTemplate().exchange(url, HttpMethod.POST, requestEntity, String.class);
 		
 	}
 }
