@@ -201,13 +201,11 @@ public class OpenApiService {
     		userPrompt = apiRequest.prompt;
     	}else {
     		
-    		userPrompt = "I ran an API test and it failed. Provide a brief summary of what went wrong. Then, provide some recommendations in the markdown format how to fix the issue with code snippets.\r\n"
-    				+ "\r\n"
-    				+ "Consider the following when providing recommendations:\r\n"
-    				+ "- Generally, if the API response is an error, and it contains specific error information, and the API spec lacks this detail, then the spec could be 'under-speced' and needs to be updated to bring it in line with the API impelementation.\r\n"
-    				+ "- When comparing the spec with the implementation, base your recommendation on what the spec says for the specific operation that was executed by the test (POST, GET, PUT, etc).\r\n"
+    		userPrompt = "I ran an API test and it failed. Under the heading, \"## What seems the problem?\" provide a brief summary of what may have gone wrong (you don't need to state the test name here). Then, provide the best recommendation in markdown format on how to fix the issue under the heading \"## Recommendation\". If the recommendation has multiple options, then list these subsections with the headings \"### Option 1\", \"### Option 2\" and so on.\r\n"
+    				+ " \r\n"
+    				+ "Consider the following when providing the recommendation:\r\n"
+    				+ "- When comparing the API swagger spec with the implementation, base your recommendation on what the spec says for the specific operation that was executed by the test (POST, GET, PUT, etc).\r\n"
     				+ "- If the implementation and spec disagree about a constraint, then the options are to update the spec to align it with the implementation, or to align the implementation with the spec. In this case, provide alternative options with code snippets so the user can choose. If the option is about updating the API spec, then provide a code snippet.\r\n"
-    				+ "\r\n"
     				+ "[TEST NAME]:\r\n"
     				+ "{0}\r\n"
     				+ "\r\n"
