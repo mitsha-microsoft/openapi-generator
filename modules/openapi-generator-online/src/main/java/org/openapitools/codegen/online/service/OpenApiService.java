@@ -201,7 +201,7 @@ public class OpenApiService {
     		userPrompt = apiRequest.prompt;
     	}else {
     		
-    		userPrompt = "I ran an API test and it failed. Under the heading, \"## What seems the problem?\" provide a brief summary of what may have gone wrong (you don't need to state the test name here). Then, provide the best recommendation in markdown format on how to fix the issue under the heading \"## Recommendation\". If the recommendation has multiple options, then list these subsections with the headings \"### Option 1\", \"### Option 2\" and so on.\r\n"
+    		userPrompt = "I ran an API test and it failed. Under the heading, \"## What seems the problem?\" provide a brief summary of what may have gone wrong (you do not need to state the test name here). Then, provide the best recommendation in markdown format on how to fix the issue under the heading \"## Recommendation\". If the recommendation has multiple options, then list these subsections with the headings \"### Option 1\", \"### Option 2\" and so on.\r\n"
     				+ " \r\n"
     				+ "Consider the following when providing the recommendation:\r\n"
     				+ "- When comparing the API swagger spec with the implementation, base your recommendation on what the spec says for the specific operation that was executed by the test (POST, GET, PUT, etc).\r\n"
@@ -243,7 +243,8 @@ public class OpenApiService {
     		
     		MessageFormat mf = new MessageFormat(userPrompt, Locale.ROOT);
     		userPrompt = mf.format( new Object[] {apiRequest.testSummary, apiRequest.expectedResponseCode, apiRequest.responseCode, apiRequest.apiPath, apiRequest.requestPayload, apiRequest.response, apiRequest.swagger, apiRequest.implementationCode, apiRequest.schemaValidationErrors});
-//    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
+			userPrompt = userPrompt.replaceAll("'", "''");
+			//    		userPrompt += "Api name \n\n" + apiRequest.testSummary + "\n\n";
 //        	userPrompt += "Api Request \n\n" + apiRequest.requestPayload + "\n\n";
 //        	userPrompt += "Api Response \n\n" + apiRequest.response + "\n\n";
 //        	userPrompt += "Expected Response Code \n\n" + apiRequest.expectedResponseCode + "\n\n";
