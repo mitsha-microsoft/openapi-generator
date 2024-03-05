@@ -71,7 +71,7 @@ public class CodegenOperation {
     public String operationIdLowerCase; // for markdown documentation
     public String operationIdCamelCase; // for class names
     public String operationIdSnakeCase;
-    public List<TestScenario> scenarios;
+    public List<Object> scenarios;
     public String  jsonSchema;
     public String responseSchema400;
     
@@ -317,11 +317,11 @@ public class CodegenOperation {
     
     
 
-    public List<TestScenario> getScenarios() {
+    public List<Object> getScenarios() {
 		return scenarios;
 	}
 
-	public void setScenarios(List<TestScenario> scenarios) {
+	public void setScenarios(List<Object> scenarios) {
 		this.scenarios = scenarios;
 	}
 

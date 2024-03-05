@@ -150,6 +150,14 @@ public class Generator {
 		if (opts.getConfiguration() != null) {
 			codegenConfig.additionalProperties().put("typescriptConfiguration", opts.getConfiguration());
 		}
+		
+		if (opts.getRequiredOperationIds() != null ) {
+			codegenConfig.additionalProperties().put("requiredOperationIds", opts.getRequiredOperationIds());
+		}
+		
+		if (opts.getExampleJSON() != null ) {
+			codegenConfig.additionalProperties().put("exampleJSON", opts.getExampleJSON());
+		}
 
 		codegenConfig.setOutputDir(outputFolder);
 

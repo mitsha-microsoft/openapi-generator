@@ -4257,14 +4257,14 @@ public class DefaultCodegen implements CodegenConfig {
         property.defaultValue = toDefaultValue(property, p);
         property.defaultValueWithParam = toDefaultValueWithParam(name, p);
         
-//        try {
-//        	CodegenPropertyExampleGenerator generator = new CodegenPropertyExampleGenerator(this);
-//            property.primitiveValidExample = new PrimitiveValidExample();
-//            property.primitiveValidExample.required = new ArrayList<Object>();
-//			property.primitiveValidExample.required.add(Json.mapper().writeValueAsString(generator.generateExamples(property, p, true)));
-//		} catch (JsonProcessingException e) {
-//			LOGGER.error("Unable to generate primitive valid example for codegen property {}", property.getName());
-//		}
+        try {
+        	CodegenPropertyExampleGenerator generator = new CodegenPropertyExampleGenerator(this);
+            property.primitiveValidExample = new PrimitiveValidExample();
+            property.primitiveValidExample.required = new ArrayList<Object>();
+			property.primitiveValidExample.required.add(Json.mapper().writeValueAsString(generator.generateExamples(property, p, true)));
+		} catch (JsonProcessingException e) {
+			LOGGER.error("Unable to generate primitive valid example for codegen property {}", property.getName());
+		}
         
         LOGGER.debug("debugging from property return: {}", property);
         schemaCodegenPropertyCache.put(ns, property);
@@ -4962,12 +4962,17 @@ public class DefaultCodegen implements CodegenConfig {
     	}
         
         try {
-        	LOGGER.info("####### UPDATING TEST SCEANARIONS FOR OPERATION {} ####", op.summary);
-            APITestScenario ts = new APITestScenario(this);
-            ts.generateTestScenariosBasedOnAllParams(op);
-            //ts.generateTestScenariosBasedOnRules(op);
-            LOGGER.info("####### TOTAL TEST SCEANARIONS FOR OPERATION {} ####", op.scenarios.size());
-
+        	List<String> requiredOperationIds = new ArrayList<>();
+			if (this.additionalProperties().containsKey("requiredOperationIds")) {
+				requiredOperationIds = (List<String>) this.additionalProperties().get("requiredOperationIds");
+			}
+			if(requiredOperationIds.contains(op.operationIdOriginal)) {
+				LOGGER.info("####### UPDATING TEST SCEANARIONS FOR OPERATION {} ####", op.summary);
+	            APITestScenario ts = new APITestScenario(this);
+	            //ts.generateTestScenariosBasedOnAllParams(op);
+	            ts.generateTestScenariosBasedOnRules(op);
+	            LOGGER.info("####### TOTAL TEST SCEANARIONS FOR OPERATION {} ####", op.scenarios.size());
+			}
         }catch (Exception e){
         	LOGGER.error("Error occured while generating test scenarios for operation {} {}", op.summary, e);
         }
@@ -5242,19 +5247,19 @@ public class DefaultCodegen implements CodegenConfig {
             LOGGER.warn("Parameter name not defined properly. Default to UNKNOWN_PARAMETER_NAME");
             codegenParameter.paramName = "UNKNOWN_PARAMETER_NAME";
         }
-        LOGGER.info("Updating examples for parameter {}", parameter.getDescription());
+        //LOGGER.info("Updating examples for parameter {}", parameter.getDescription());
         // set the parameter example value
         // should be overridden by lang codegen
-        setParameterExampleValue(codegenParameter, parameter);
+        //setParameterExampleValue(codegenParameter, parameter);
         // set the parameter examples (if available)
-        setParameterExamples(codegenParameter, parameter);
+        //setParameterExamples(codegenParameter, parameter);
 
-        try {
-        	ParameterExampleGenerator generator = new ParameterExampleGenerator(this);
-            generator.GenerateExample(codegenParameter, parameter.getSchema());
-        }catch (Exception e){
-        	LOGGER.error("Error occured while generating examples {}", e);        
-        }
+//        try {
+//        	ParameterExampleGenerator generator = new ParameterExampleGenerator(this);
+//            generator.GenerateExample(codegenParameter, parameter.getSchema());
+//        }catch (Exception e){
+//        	LOGGER.error("Error occured while generating examples {}", e);        
+//        }
         
         postProcessParameter(codegenParameter);
         LOGGER.debug("debugging codegenParameter return: {}", codegenParameter);
@@ -8497,8 +8502,8 @@ public class DefaultCodegen implements CodegenConfig {
 
 	@Override
 	public String apiTestDataFilenameBasedOnOperation(String templateName, String tag, String method) {
-		String suffix = apiTestTemplateFiles().get(templateName);
-        return apiTestFileFolder() + File.separator + toApiName(tag) + File.separator + "data" + File.separator + tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + ".data" +  suffix;
+		String suffix = "json";
+        return apiTestFileFolder() + File.separator + toApiName(tag) + File.separator + "data" + File.separator + tag.toLowerCase(Locale.ROOT) + "." + method.toLowerCase(Locale.ROOT) + "." +  suffix;
 	}
 	
 	@Override

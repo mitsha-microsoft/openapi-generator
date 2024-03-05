@@ -11,21 +11,32 @@ import com.azure.ai.openai.models.ChatRequestSystemMessage;
 import com.azure.ai.openai.models.ChatRequestUserMessage;
 import com.azure.ai.openai.models.ChatResponseMessage;
 import com.azure.core.credential.AzureKeyCredential;
+
+import java.text.MessageFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
+
+import org.openapitools.codegen.CodegenOperation;
+import org.openapitools.codegen.CodegenParameter;
+import org.openapitools.codegen.CodegenProperty;
 
 public class GenerateAIBasedAPITestsScenario {
     
 	private static final String OPENAI_API_KEY = "f62a2e9e9989487384827d169152f737";
     private static final String ENDPOINT = "https://vens-openai.openai.azure.com/";
+    private static final String API_TESTING_ENDPOINT = "https://apitesting.openai.azure.com/";
+    private static final String API_TESTING_KEY = "92eb2e08ed17450b80de7f7d24a94388";
+    
     private OpenAIClient client; 
     
     public GenerateAIBasedAPITestsScenario() {
     	
     	this.client = new OpenAIClientBuilder()
-        	    .credential(new AzureKeyCredential(OPENAI_API_KEY))
-        	    .endpoint(ENDPOINT)
+        	    .credential(new AzureKeyCredential(API_TESTING_KEY))
+        	    .endpoint(API_TESTING_ENDPOINT)
         	    .buildClient();
     	
     }
@@ -323,34 +334,51 @@ public class GenerateAIBasedAPITestsScenario {
     	return response;
     }
     
-	/*
-	 * public static void main(String[] args) { GenerateAPITestsSceanrios a = new
-	 * GenerateAPITestsSceanrios(); String userPrompt = "{\r\n" +
-	 * "  \"tags\": [\r\n" + "    \"pet\"\r\n" + "  ],\r\n" +
-	 * "  \"summary\": \"Updates a pet in the store with form data\",\r\n" +
-	 * "  \"operationId\": \"updatePetWithForm\",\r\n" + "  \"parameters\": [\r\n" +
-	 * "    {\r\n" + "      \"name\": \"petId\",\r\n" +
-	 * "      \"in\": \"path\",\r\n" +
-	 * "      \"description\": \"ID of pet that needs to be updated\",\r\n" +
-	 * "      \"required\": true,\r\n" + "      \"schema\": {\r\n" +
-	 * "        \"type\": \"integer\",\r\n" + "        \"format\": \"int64\",\r\n" +
-	 * "        \"extensions\": {},\r\n" + "        \"exampleSetFlag\": false,\r\n"
-	 * + "        \"types\": [\r\n" + "          \"integer\"\r\n" + "        ]\r\n"
-	 * + "      },\r\n" + "      \"extensions\": {}\r\n" + "    }\r\n" + "  ],\r\n"
-	 * + "  \"requestBody\": {\r\n" + "    \"content\": {\r\n" +
-	 * "      \"application/x-www-form-urlencoded\": {\r\n" +
-	 * "        \"schema\": {\r\n" +
-	 * "          \"$ref\": \"#/components/schemas/updatePetWithForm_request\",\r\n"
-	 * + "          \"exampleSetFlag\": false\r\n" + "        },\r\n" +
-	 * "        \"exampleSetFlag\": false\r\n" + "      }\r\n" + "    }\r\n" +
-	 * "  },\r\n" + "  \"responses\": {\r\n" + "    \"405\": {\r\n" +
-	 * "      \"description\": \"Invalid input\",\r\n" +
-	 * "      \"content\": {},\r\n" + "      \"extensions\": {}\r\n" + "    }\r\n" +
-	 * "  },\r\n" + "  \"security\": [\r\n" + "    {\r\n" +
-	 * "      \"petstore_auth\": [\r\n" + "        \"write:pets\",\r\n" +
-	 * "        \"read:pets\"\r\n" + "      ]\r\n" + "    }\r\n" + "  ],\r\n" +
-	 * "  \"extensions\": {}\r\n" + "}"; String response = a.Run(userPrompt); }
-	 */
-    
-   
+    public List<Object> GenerateExampleBasedOnAI(CodegenOperation op, String spec, String exampleJSON)
+    {
+    	Map<String, Object> paramExampleValues = new HashMap<>();
+    	List<CodegenParameter> optionalParams = op.allParams.stream().filter(p -> !p.required).toList();
+    	List<CodegenParameter> requiredParams = op.allParams.stream().filter(p -> p.required).toList();
+    	
+    	List<String> requiredParamNames = requiredParams.stream().map(p -> p.paramName).toList();
+    	List<String> optionalParamNames = optionalParams.stream().map(p -> p.paramName).toList();
+    	CodegenParameter body = op.bodyParam;
+    	List<CodegenProperty> requiredVas = body.requiredVars;
+    	List<CodegenProperty> optionalVars = body.vars.stream().filter(v -> !v.required).toList();
+    	requiredParamNames = requiredVas.stream().map(p -> p.baseName).toList();
+    	
+		for(int i=0;i<optionalVars.size();i++)
+		{	
+			CodegenProperty param = optionalVars.get(i);
+			String userPrompt = "Create a sampler data for the operation `{0}` which includes all the required parameters, the only optional parameter `{1}` and any of other dependent optional parameter based on description of it in swagger spec. Response should be only json format with summary, request, response as provided in examples.";
+
+			MessageFormat mf  = new MessageFormat(userPrompt);
+			
+			userPrompt = mf.format(new Object[] {op.operationIdOriginal, param.baseName});
+			
+	    	List<ChatRequestMessage> chatMessages = Prompt.getChatExamples(exampleJSON);
+	    	
+//	    	if(i == 0) {
+//	    		chatMessages = Prompt.getChatExamples(exampleJSON);
+//	    	}
+	    	
+	    	System.out.println(userPrompt);
+	    	chatMessages.add(new ChatRequestUserMessage(userPrompt));
+	    	
+	    	ChatCompletions chatCompletions = client.getChatCompletions("gpt4-api",
+	        	    new ChatCompletionsOptions(chatMessages));
+	        	
+	        	String response = "";
+	        	for (ChatChoice choice : chatCompletions.getChoices()) {
+	        	    ChatResponseMessage message = choice.getMessage();
+	        	    response += message.getContent();
+	        	}
+	        	response = response.replaceAll("```json", "");
+	        	response = response.replaceAll("```", "");
+	        	
+	        	System.out.printf(Locale.ROOT, "Example for param %s: %s", param.baseName, response);
+	        	paramExampleValues.put(param.baseName, response);
+		}
+		return paramExampleValues.values().stream().toList();
+    }
 }

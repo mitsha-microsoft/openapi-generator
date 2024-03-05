@@ -9,15 +9,19 @@ import org.openapitools.codegen.online.service.OpenApiService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.http.codec.ServerSentEvent;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+
 import io.swagger.annotations.ApiOperation;
 import io.swagger.annotations.ApiParam;
 import io.swagger.annotations.ApiResponse;
 import io.swagger.annotations.ApiResponses;
+import reactor.core.publisher.Flux;
 
 @Controller
 @RequestMapping("/openapi")
@@ -40,7 +44,9 @@ public class OpenApiController {
             @ApiResponse(code = 200, message = "successful operation", response = ResponseCode.class) })
     @RequestMapping(value = "/stream-insights",
             method = RequestMethod.POST, produces = MediaType.TEXT_EVENT_STREAM_VALUE)
-    public ResponseEntity<String> streamInsight(@ApiParam(value = "Request configuration" ,required=true )  @Valid @RequestBody APIRequest apiRequest) {
+    public Flux<ServerSentEvent<String>> streamInsight(@ApiParam(value = "Request configuration" ,required=true )  @Valid @RequestBody APIRequest apiRequest) throws JsonProcessingException {
         return openApiService.streamApiTestInsight(apiRequest);
     }
+	
+	
 }

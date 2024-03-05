@@ -230,6 +230,10 @@ export class SwaggerValidator {
             });
         }
 
+        if(properties === undefined || Object.keys(properties).length === 0){
+            console.log("No properties found for schema: " + schema.title);
+            return [];
+        }
         // Validate each property
         for (const propertyName in data) {
             const propertySchema = this.resolveRef(properties![propertyName]);

@@ -17,6 +17,7 @@ import org.openapitools.codegen.CodegenConfig;
 import org.openapitools.codegen.CodegenOperation;
 import org.openapitools.codegen.CodegenParameter;
 import org.openapitools.codegen.DefaultCodegen;
+import org.openapitools.codegen.serializer.SerializerUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -85,17 +86,17 @@ public class APITestScenario {
 			scenarios.add(ts);
 		}
 
-		operation.scenarios = scenarios;
+		//operation.scenarios = scenarios;
 	}
 
 	public void generateTestScenariosForSingleOp(CodegenOperation operation) {
 		this.scenarios = new ArrayList<>();
 
 	
-		if(!operation.operationId.equals("addPet")) {
-			operation.scenarios = scenarios; 
-			return; 
-		}
+//		if(!operation.operationId.equals("addPet")) {
+//			operation.scenarios = scenarios; 
+//			return; 
+//		}
 		 
 		List<CodegenParameter> allParams = operation.allParams;
 
@@ -236,7 +237,7 @@ public class APITestScenario {
 			}
 		}
 
-		operation.scenarios = scenarios;
+		//operation.scenarios = scenarios;
 	}
 
 	public void generateTestScenarionsForAllOps(List<CodegenOperation> operations) {
@@ -245,13 +246,13 @@ public class APITestScenario {
 	
 	public void generateTestScenariosBasedOnRules(CodegenOperation operation) throws JsonProcessingException {
 		
-		this.scenarios = new ArrayList<>();
-
+		GenerateAIBasedAPITestsScenario aiBasedAPITestsScenario = new GenerateAIBasedAPITestsScenario();
+		String exampleJSON = defaultCodegen.additionalProperties().get("exampleJSON").toString();
+		List<Object> examples1 = aiBasedAPITestsScenario.GenerateExampleBasedOnAI(operation, SerializerUtils.toJsonString(this.defaultCodegen.getOpenAPI()), exampleJSON);
+		operation.scenarios = examples1;
 		
-		if(!operation.operationId.equals("loadTestAdministrationCreateOrUpdateTest")) {
-			operation.scenarios = scenarios; 
-			return; 
-		}
+		
+		this.scenarios = new ArrayList<>();
 		
 		Map<String, Object> additionalProperties = defaultCodegen.additionalProperties();
 		Map<String, Object> configurationOptions = additionalProperties == null ? null
@@ -298,7 +299,7 @@ public class APITestScenario {
 					}
 
 					if (StringUtils.isBlank(copy.example)) {
-						if (parameter.validValues.size() > 0) {
+						if (parameter.validValues != null && parameter.validValues.size() > 0) {
 							copy.example = parameter.validValues.get(0).toString();
 						} else if (parameter.example != null) {
 							copy.example = parameter.example;
@@ -383,8 +384,7 @@ public class APITestScenario {
 
 				scenarios.add(ts);
 			}			
-			
 		}
-		operation.scenarios = scenarios;
+		//operation.scenarios = scenarios;
 	}
 }
