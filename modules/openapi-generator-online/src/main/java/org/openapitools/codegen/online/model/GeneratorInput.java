@@ -32,6 +32,7 @@ public class GeneratorInput {
     private Map<String, Object> configuration; // custom configuration
     private List<String> requiredOperationIds;
     private String exampleJSON;
+    private String useLLM;
 
     public AuthorizationValue getAuthorizationValue() {
         return authorizationValue;
@@ -90,5 +91,13 @@ public class GeneratorInput {
 	
 	public String getExampleJSON() {
 		return exampleJSON;
+	}
+	
+	public String getUseLLM() {
+        return useLLM;
+    }
+	
+	public void setUseLLM(String useLLM) {
+		this.useLLM = useLLM;
 	}
 }

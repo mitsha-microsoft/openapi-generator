@@ -17,6 +17,7 @@ import org.apitest.scenarios.rules.codegen.DateParameterGenerator;
 import org.apitest.scenarios.rules.codegen.DateTimeParameterGenerator;
 import org.apitest.scenarios.rules.codegen.FileParameterGenerator;
 import org.apitest.scenarios.rules.codegen.IntegerParameterGenerator;
+import org.apitest.scenarios.rules.codegen.NumberParameterGenerator;
 import org.apitest.scenarios.rules.codegen.ParameterRules.PrimitiveValidParameterRuleTypes;
 import org.apitest.scenarios.rules.codegen.PrimitiveInvalidExample;
 import org.apitest.scenarios.rules.codegen.PrimitiveValidExample;
@@ -245,7 +246,7 @@ public class CodegenPropertyExampleGenerator {
             }else {
             	return fullPrefix + pg.generateInvalidExample() + closeChars;
             }
-        } else if (ModelUtils.isIntegerSchema(schema) || ModelUtils.isNumberSchema(schema) || ModelUtils.isLongSchema(schema) || ModelUtils.isFloatSchema(schema) || ModelUtils.isDoubleSchema(schema)) {
+        } else if (ModelUtils.isIntegerSchema(schema)) {
         	//CodegenProperty property = this.codegen.fromProperty("inner", schema);  
         	IntegerParameterGenerator pg = new IntegerParameterGenerator(root);
         	
@@ -254,7 +255,15 @@ public class CodegenPropertyExampleGenerator {
             }else {
             	return fullPrefix + pg.generateInvalidExample() + closeChars;
             }
-        } else if (ModelUtils.isArraySchema(schema)) {
+        } else if (ModelUtils.isNumberSchema(schema) || ModelUtils.isLongSchema(schema) || ModelUtils.isFloatSchema(schema) || ModelUtils.isDoubleSchema(schema)) {
+    		NumberParameterGenerator pg = new NumberParameterGenerator(root);
+        	
+            if(isValid) {
+            	return fullPrefix + pg.generateValidExample() + closeChars;
+            }else {
+            	return fullPrefix + pg.generateInvalidExample() + closeChars;
+            }
+        }else if (ModelUtils.isArraySchema(schema)) {
             ArraySchema arrayschema = (ArraySchema) schema;
             Schema itemSchema = arrayschema.getItems();
             String itemModelName = getModelName(itemSchema);

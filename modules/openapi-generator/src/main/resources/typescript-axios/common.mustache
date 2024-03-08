@@ -414,7 +414,7 @@ export const sendRequest = async (axiosRequestArgs: any) => {
         }
 }
 
-export const addTestResultAttachments = (operationId:string, test:any, testCase: any, response: any, apiSpecJSON:any) => {
+export const addTestResultAttachments = (operationId:string, test:any, testCase: any, response: any, apiSpecJSON:any, isValid:any) => {
     let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
     let path = data["path"];
     let method = data["httpMethod"];
@@ -466,6 +466,12 @@ export const addTestResultAttachments = (operationId:string, test:any, testCase:
         name: "Swagger",
         contentType: applicationJson,
         body: Buffer.from(JSON.stringify(apiSpecJSON))
+    });
+    
+    test.info().attachments.push({
+        name: "IsValid",
+        contentType: applicationJson,
+        body: Buffer.from(isValid.toString())
     });
 }
 

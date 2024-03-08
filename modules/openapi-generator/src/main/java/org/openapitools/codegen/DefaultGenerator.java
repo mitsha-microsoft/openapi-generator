@@ -800,6 +800,10 @@ public class DefaultGenerator implements Generator {
 					for (CodegenOperation op : ops) {
 						String method = op.httpMethod.toLowerCase(Locale.ROOT);
 
+						if ("cartItemIdGet".equals(op.operationId) || "cartItemIdDelete".equals(op.operationId) || "cartGet".equals(op.operationId)) {
+							continue;
+						}
+						
 						if (requiredOperationIds.size() > 0 && !requiredOperationIds.contains(op.operationIdOriginal)) {
 							continue;
 						}

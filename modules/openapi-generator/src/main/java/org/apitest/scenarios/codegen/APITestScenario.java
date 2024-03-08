@@ -35,13 +35,13 @@ public class APITestScenario {
 		this.defaultCodegen = defaultCodegen;
 	}
 
-	public List<TestScenario> scenarios;
+	public List<Object> scenarios;
 
-	public List<TestScenario> getScenarios() {
+	public List<Object> getScenarios() {
 		return scenarios;
 	}
 
-	public void setScenarios(List<TestScenario> scenarios) {
+	public void setScenarios(List<Object> scenarios) {
 		this.scenarios = scenarios;
 	}
 
@@ -86,17 +86,11 @@ public class APITestScenario {
 			scenarios.add(ts);
 		}
 
-		//operation.scenarios = scenarios;
+		operation.scenarios = scenarios;
 	}
 
 	public void generateTestScenariosForSingleOp(CodegenOperation operation) {
 		this.scenarios = new ArrayList<>();
-
-	
-//		if(!operation.operationId.equals("addPet")) {
-//			operation.scenarios = scenarios; 
-//			return; 
-//		}
 		 
 		List<CodegenParameter> allParams = operation.allParams;
 
@@ -246,11 +240,18 @@ public class APITestScenario {
 	
 	public void generateTestScenariosBasedOnRules(CodegenOperation operation) throws JsonProcessingException {
 		
-		GenerateAIBasedAPITestsScenario aiBasedAPITestsScenario = new GenerateAIBasedAPITestsScenario();
-		String exampleJSON = defaultCodegen.additionalProperties().get("exampleJSON").toString();
-		List<Object> examples1 = aiBasedAPITestsScenario.GenerateExampleBasedOnAI(operation, SerializerUtils.toJsonString(this.defaultCodegen.getOpenAPI()), exampleJSON);
-		operation.scenarios = examples1;
+		String useLLM = defaultCodegen.additionalProperties().get("useLLM").toString();
 		
+		if("true".equals(useLLM)) {
+			GenerateAIBasedAPITestsScenario aiBasedAPITestsScenario = new GenerateAIBasedAPITestsScenario();
+			
+			String exampleJSON = defaultCodegen.additionalProperties().get("exampleJSON").toString();
+			
+			List<Object> examples = aiBasedAPITestsScenario.GenerateExampleBasedOnAI(operation, this.defaultCodegen.additionalProperties().get("spec").toString(), exampleJSON);
+			operation.scenarios = examples;
+			this.scenarios = examples;
+			return;
+		}
 		
 		this.scenarios = new ArrayList<>();
 		
@@ -261,7 +262,7 @@ public class APITestScenario {
 				: (Map<String, Object>) configurationOptions.get("overrideParameters");
 		
 		ParameterRules parameterRules = new ParameterRules(operation);
-		List<TestScenario> scenarios = new ArrayList<>();
+		List<Object> scenarios = new ArrayList<>();
 		List<Rule> rules = parameterRules.getAllRules();
 		
 		List<CodegenParameter> primitiveParameters = new ArrayList<>();
@@ -385,6 +386,6 @@ public class APITestScenario {
 				scenarios.add(ts);
 			}			
 		}
-		//operation.scenarios = scenarios;
+		operation.scenarios = scenarios;
 	}
 }

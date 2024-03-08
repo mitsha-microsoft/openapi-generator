@@ -1036,7 +1036,7 @@ public class TypeScriptAxiosClientCodegen extends AbstractTypeScriptClientCodege
 		p.setName(cp.paramName);
 		setParameterExampleValue(cp, p);
 		ParameterExampleGenerator pg = new ParameterExampleGenerator(this);
-		pg.GenerateExample(cp, propertySchema);
+		//pg.GenerateExample(cp, propertySchema);
 		return cp;
 	}
 

@@ -352,11 +352,11 @@ public class GenerateAIBasedAPITestsScenario {
 			CodegenProperty param = optionalVars.get(i);
 			String userPrompt = "Create a sampler data for the operation `{0}` which includes all the required parameters, the only optional parameter `{1}` and any of other dependent optional parameter based on description of it in swagger spec. Response should be only json format with summary, request, response as provided in examples.";
 
-			MessageFormat mf  = new MessageFormat(userPrompt);
+			MessageFormat mf  = new MessageFormat(userPrompt, Locale.ROOT);
 			
 			userPrompt = mf.format(new Object[] {op.operationIdOriginal, param.baseName});
 			
-	    	List<ChatRequestMessage> chatMessages = Prompt.getChatExamples(exampleJSON);
+	    	List<ChatRequestMessage> chatMessages = Prompt.getChatExamples(spec, exampleJSON);
 	    	
 //	    	if(i == 0) {
 //	    		chatMessages = Prompt.getChatExamples(exampleJSON);

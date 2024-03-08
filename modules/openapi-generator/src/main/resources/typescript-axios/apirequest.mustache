@@ -23,7 +23,7 @@ test.describe('Valid cases', function() {
             let response = await sendRequest(request);
             
             // add test case info to test result attachments
-            addTestResultAttachments('{{operationId}}',test, testCase, response, ApiSpecJSON);            
+            addTestResultAttachments('{{operationId}}',test, testCase, response, ApiSpecJSON, "true");            
             
             // validate response code
             expect(response.status).toBe(testCase["response"]["statusCode"]);
@@ -54,7 +54,7 @@ test.describe('Error handling cases', function() {
             let response = await sendRequest(request);
             
             // add test case info to test result attachments            
-            addTestResultAttachments('{{operationId}}', test, testCase, response, ApiSpecJSON);            
+            addTestResultAttachments('{{operationId}}', test, testCase, response, ApiSpecJSON, "false");            
             
             // validate response code           
             expect(response.status).toBe(testCase["response"]["statusCode"]);

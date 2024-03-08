@@ -17,8 +17,10 @@
 
 package org.openapitools.codegen.online.service;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.parser.OpenAPIParser;
+import io.swagger.util.Json;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.parser.core.models.AuthorizationValue;
 import io.swagger.v3.parser.core.models.ParseOptions;
@@ -145,6 +147,7 @@ public class Generator {
 		if (opts.getOptions() != null) {
 			codegenConfig.additionalProperties().putAll(opts.getOptions());
 			codegenConfig.additionalProperties().put("openAPI", openapi);
+			codegenConfig.additionalProperties().put("spec", Json.pretty(node));
 		}
 		
 		if (opts.getConfiguration() != null) {
@@ -157,6 +160,10 @@ public class Generator {
 		
 		if (opts.getExampleJSON() != null ) {
 			codegenConfig.additionalProperties().put("exampleJSON", opts.getExampleJSON());
+		}
+		
+		if (opts.getUseLLM() != null ) {
+			codegenConfig.additionalProperties().put("useLLM", opts.getUseLLM());
 		}
 
 		codegenConfig.setOutputDir(outputFolder);
@@ -190,6 +197,7 @@ public class Generator {
 				LOGGER.error("unable to delete output folder " + outputFolder, e);
 			}
 		} catch (Exception e) {
+			System.out.printf(Locale.ROOT, e.getStackTrace().toString());
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Unable to build target: " + e.getMessage(), e);
 		}
 		return outputFilename;

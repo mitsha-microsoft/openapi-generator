@@ -7817,12 +7817,12 @@ public class DefaultCodegen implements CodegenConfig {
         // should be overridden by lang codegen
         setParameterExampleValue(codegenParameter, body);
 
-        try {
-        	ParameterExampleGenerator pg = new ParameterExampleGenerator(this);
-            pg.GenerateExample(codegenParameter, schema);
-        }catch (Exception e){
-        	LOGGER.error("Error occured while generating example for requestbody param {} {}", codegenParameter.baseName, e);
-        }
+//        try {
+//        	ParameterExampleGenerator pg = new ParameterExampleGenerator(this);
+//            pg.GenerateExample(codegenParameter, schema);
+//        }catch (Exception e){
+//        	LOGGER.error("Error occured while generating example for requestbody param {} {}", codegenParameter.baseName, e);
+//        }
         
         // restore original schema with description, extensions etc
         if (original != null) {
