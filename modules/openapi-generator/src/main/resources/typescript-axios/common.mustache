@@ -160,7 +160,11 @@ export const createRequest = async (operationId:string, scenarioIndex:string, te
     // override parameters from apiTestConfig
     if(apiTestConfig?.parameters){
         for(let key in apiTestConfig?.parameters){
-            testData[key] = apiTestConfig?.parameters[key];
+            if(typeof apiTestConfig?.parameters[key] === "function"){
+                testData[key] = apiTestConfig?.parameters[key]();
+            }else{
+                testData[key] = apiTestConfig?.parameters[key];
+            }
         }
     }
 
