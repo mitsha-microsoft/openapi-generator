@@ -4,7 +4,7 @@
         <groupId>org.openapitools</groupId>
         <artifactId>openapi-generator-project</artifactId>
         <!-- RELEASE_VERSION -->
-        <version>7.3.0-SNAPSHOT</version>
+        <version>7.5.0-SNAPSHOT</version>
         <!-- /RELEASE_VERSION -->
         <relativePath>../..</relativePath>
     </parent>
@@ -15,6 +15,8 @@
         <spring-boot.version>2.5.14</spring-boot.version>
         <springfox-version>3.0.0</springfox-version>
         <sonar.exclusions>**/org/openapitools/codegen/online/**/*</sonar.exclusions>
+        <jib-maven-plugin.version>3.2.0</jib-maven-plugin.version>
+	   	<docker.image.prefix>apitesting.azurecr.io</docker.image.prefix>
     </properties>
     <dependencyManagement>
         <dependencies>
@@ -58,10 +60,22 @@
                     </execution>
                 </executions>
             </plugin>
+            <plugin>
+			  <artifactId>jib-maven-plugin</artifactId>
+			  <groupId>com.google.cloud.tools</groupId>
+			  <version>${jib-maven-plugin.version}</version>
+			  <configuration>
+			     <from>
+			         <image>mcr.microsoft.com/java/jdk:11-zulu-ubuntu</image>
+			     </from>
+			     <to>
+			         <image>${docker.image.prefix}/${project.artifactId}</image>
+			     </to>
+			  </configuration>
+			</plugin>
         </plugins>
     </build>
     <profiles>
-
         <profile>
             <id>static-analysis</id>
             <build>
@@ -125,7 +139,11 @@
             <artifactId>openapi-generator</artifactId>
             <version>${project.parent.version}</version>
         </dependency>
-
+		<dependency>
+		    <groupId>com.azure</groupId>
+		    <artifactId>azure-ai-openai</artifactId>
+		    <version>1.0.0-beta.6</version>
+		</dependency>
         <dependency>
             <groupId>junit</groupId>
             <artifactId>junit</artifactId>
@@ -142,5 +160,9 @@
             <artifactId>spring-boot-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+	        <groupId>org.springframework.boot</groupId>
+	        <artifactId>spring-boot-starter-webflux</artifactId>
+	    </dependency>
     </dependencies>
 </project>

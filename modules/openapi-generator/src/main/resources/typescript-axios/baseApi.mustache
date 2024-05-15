@@ -7,8 +7,13 @@ import type { Configuration } from './configuration';
 // @ts-ignore
 import type { AxiosPromise, AxiosInstance, RawAxiosRequestConfig } from 'axios';
 import globalAxios from 'axios';
-
+{{#overrideBasepath}}
+export const BASE_PATH = "{{{overriddenBasepath}}}";
+{{/overrideBasepath}}
+{{^overrideBasepath}}
 export const BASE_PATH = "{{{basePath}}}".replace(/\/+$/, "");
+{{/overrideBasepath}}
+
 
 /**
  *

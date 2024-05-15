@@ -1,0 +1,55 @@
+import fs from 'fs';
+import type {
+    FullConfig, FullResult, Reporter, Suite, TestCase, TestResult
+} from '@playwright/test/reporter';
+
+const path = require('path');
+
+class MyReporter implements Reporter {
+
+    onEnd(result: FullResult) {
+        console.log(`Finished the run: ${result.status}`);
+
+        // Read the JSON report
+        const currentDir = __dirname;
+        console.log(currentDir);
+
+        const reportDir = path.join(currentDir, '/../../api-tests-report');
+        const reportJSON = path.join(reportDir, 'report.json');
+
+        const report = fs.readFileSync(reportJSON, 'utf8');
+        const reportData = JSON.parse(report);
+
+        if (!fs.existsSync(reportDir)) {
+			fs.mkdirSync(reportDir);
+		}
+
+        let reportsFileDir = path.join(currentDir, '/../.lib/report');
+        this.copyDir(reportsFileDir, reportDir);
+        
+        // Write the report data to a JavaScript file
+        const jsReport = 'window.testReport = ' + JSON.stringify(reportData, null, 2) + ';';
+        const jsReportPath = path.join(reportDir, 'testReport.js');
+        fs.writeFileSync(jsReportPath, jsReport);
+    }
+    
+    copyDir(src:string, dest:string) {
+	    fs.mkdirSync(dest, { recursive: true });
+	
+	    let entries = fs.readdirSync(src, { withFileTypes: true });
+	
+	    for (let entry of entries) {
+	        let srcPath = path.join(src, entry.name);
+	        let destPath = path.join(dest, entry.name);
+	
+	        if (entry.isDirectory()) {
+	            this.copyDir(srcPath, destPath);
+	        } else {
+	            fs.copyFileSync(srcPath, destPath);
+	        }
+	    }
+	}
+    
+}
+
+export default MyReporter;

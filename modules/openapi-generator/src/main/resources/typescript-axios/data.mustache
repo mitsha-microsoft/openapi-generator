@@ -1,0 +1,11 @@
+{
+	{{#operations}}
+	{{#operation}}
+    "{{{operationId}}}" : [
+        {{#scenarios}}
+            {{{.}}}{{^-last}},{{/-last}}
+        {{/scenarios}}
+    ]
+	{{/operation}}
+	{{/operations}}
+}

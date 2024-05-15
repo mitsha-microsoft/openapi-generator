@@ -1,31 +1,34 @@
-/* tslint:disable */
 /* eslint-disable */
-{{>licenseInfo}}
-
-import type { Configuration } from "./configuration";
-import type { RequestArgs } from "./base";
-import type { AxiosInstance, AxiosResponse } from 'axios';
-import { RequiredError } from "./base";
+// @ts-ignore
+import globalAxios from 'axios';
+{{#overrideBasepath}}
+export const BASE_PATH = "{{{overriddenBasepath}}}";
+{{/overrideBasepath}}
+{{^overrideBasepath}}
+export const BASE_PATH = "{{{basePath}}}".replace(/\/+$/, "");
+{{/overrideBasepath}}
+import { TestDataWithAllParams } from './swaggerSchema';
 {{#withNodeImports}}
 import { URL, URLSearchParams } from 'url';
 {{/withNodeImports}}
+import { Configuration, type ConfigurationParameters } from './configuration';
+import {apiTestConfig} from '../../api-tests.config';
+import path from 'path';
 
-/**
- *
- * @export
- */
-export const DUMMY_BASE_URL = 'https://example.com'
 
-/**
- *
- * @throws {RequiredError}
- * @export
- */
-export const assertParamExists = function (functionName: string, paramName: string, paramValue: unknown) {
-    if (paramValue === null || paramValue === undefined) {
-        throw new RequiredError(paramName, `Required parameter ${paramName} was null or undefined when calling ${functionName}.`);
-    }
+let basePath = apiTestConfig?.basePath ?? BASE_PATH;
+
+const applicationJson = "application/json";
+
+const configurationParameter : ConfigurationParameters = {
+    basePath: basePath  
 }
+
+if(apiTestConfig?.auth?.scheme === "bearer"){
+    configurationParameter["accessToken"] = apiTestConfig?.auth?.token;
+}
+
+const configuration = new Configuration(configurationParameter);
 
 /**
  *
@@ -59,7 +62,12 @@ export const setBearerAuthToObject = async function (object: any, configuration?
         const accessToken = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken()
             : await configuration.accessToken;
-        object["Authorization"] = "Bearer " + accessToken;
+        
+        if(accessToken.startsWith("Bearer ") || accessToken.startsWith("bearer ")){
+                object["Authorization"] = accessToken;
+        }else{
+            object["Authorization"] = "Bearer " + accessToken;
+        }
     }
 }
 
@@ -72,7 +80,12 @@ export const setOAuthToObject = async function (object: any, name: string, scope
         const localVarAccessTokenValue = typeof configuration.accessToken === 'function'
             ? await configuration.accessToken(name, scopes)
             : await configuration.accessToken;
-        object["Authorization"] = "Bearer " + localVarAccessTokenValue;
+        
+        if(localVarAccessTokenValue.startsWith("Bearer ") || localVarAccessTokenValue.startsWith("bearer ")){
+            object["Authorization"] = localVarAccessTokenValue;
+        }else{
+            object["Authorization"] = "Bearer " + localVarAccessTokenValue;
+        }
     }
 }
 
@@ -118,8 +131,48 @@ export const serializeDataIfNeeded = function (value: any, requestOptions: any, 
         ? configuration.isJsonMime(requestOptions.headers['Content-Type'])
         : nonString;
     return needsSerialization
-        ? JSON.stringify(value !== undefined ? value : {})
+        ? JSON.stringify(value !== undefined ? convertMapsAndSetsToPlain(value) : {})
         : (value || "");
+}
+
+function convertMapsAndSetsToPlain(value: any): any {
+    if (typeof Set === "undefined") return value;
+    if (typeof Map === "undefined") return value;
+    if (typeof value !== "object" || !value) {
+        return value;
+    }
+    if (value instanceof Set) {
+        return Array.from(value).map(item => convertMapsAndSetsToPlain(item));
+    }
+    if (value instanceof Map) {
+        const entries: Array<[string, any]> = [];
+        value.forEach((value: any, key: any) => {
+            entries.push([key, convertMapsAndSetsToPlain(value)])
+        });
+        return objectFromEntries(entries);
+    }
+    if (Array.isArray(value)) {
+        return value.map(it => convertMapsAndSetsToPlain(it));
+    }
+    return objectFromEntries(objectEntries(value)
+        .map(([k, v]) => [k, convertMapsAndSetsToPlain(v)]));
+}
+
+/**
+ * Ponyfill for Object.entries
+ */
+function objectEntries(object: Record<string, any>): Array<[string, any]> {
+    return Object.keys(object).map(key => [key, object[key]]);
+}
+
+/**
+ * Ponyfill for Object.fromEntries
+ */
+function objectFromEntries(entries: any): Record<string, any> {
+    return [...entries].reduce((object, [key, val]) => {
+        object[key] = val;
+        return object;
+    }, {});
 }
 
 /**
@@ -130,13 +183,346 @@ export const toPathString = function (url: URL) {
     return url.pathname + url.search + url.hash
 }
 
-/**
- *
- * @export
- */
-export const createRequestFunction = function (axiosArgs: RequestArgs, globalAxios: AxiosInstance, BASE_PATH: string, configuration?: Configuration) {
-    return <T = unknown, R = AxiosResponse<T>>(axios: AxiosInstance = globalAxios, basePath: string = BASE_PATH) => {
-        const axiosRequestArgs = {...axiosArgs.options, url: (axios.defaults.baseURL ? '' : configuration?.basePath ?? basePath) + axiosArgs.url};
-        return axios.request<T, R>(axiosRequestArgs);
+
+export const createRequest = async (operationId:string, scenarioIndex:string, testData:any) => {
+    let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
+    let path = data["path"];
+    let pathParams = data["parameters"]["pathParams"];
+    let queryParams = data["parameters"]["queryParams"];
+    let headerParams = data["parameters"]["headerParams"];
+    let formParams = data["parameters"]["formParams"];
+    let bodyParams = data["parameters"]["bodyParams"];
+    let auth = data["auth"];
+    let method = data["httpMethod"];
+    let hasFormParams = data["parameters"]["hasFormParams"];
+    let multipartFormData = data["parameters"]["multipartFormData"];
+
+    // override parameters from apiTestConfig
+    if(apiTestConfig?.parameters){
+        for(let key in apiTestConfig?.parameters){
+            if(typeof apiTestConfig?.parameters[key] === "function"){
+                testData[key] = apiTestConfig?.parameters[key]();
+            }else{
+                testData[key] = apiTestConfig?.parameters[key];
+            }
+        }
+    }
+
+    for(let i = 0; i < pathParams.length; i++) {
+        path = path.replace(`{${pathParams[i]["baseName"]}}`, encodeURIComponent(String(testData[pathParams[i]["baseName"]])));
+    }
+
+    let fullPath = (globalAxios.defaults.baseURL ? '' : configuration?.basePath ?? BASE_PATH) + path;
+    let uri = new URL(fullPath);
+
+    let baseOptions;
+    if (configuration) {
+        baseOptions = configuration.baseOptions;
+    }
+    
+    const requestOptions = { "method": method, ...baseOptions};
+
+    const headers = {} as any;
+    const query = {} as any;
+    
+    let formData : any = null;
+
+    if(hasFormParams){
+        if(multipartFormData){
+            formData = new ((configuration && configuration.formDataCtor) || FormData)()
+        }else{
+            formData = new URLSearchParams();
+        }
+    }    
+
+    if(auth && auth.length > 0){
+        let authMethod = auth[0];
+        let isApiKey = authMethod["isApiKey"];
+        if(isApiKey){
+            let isKeyInHeader = authMethod["isKeyInHeader"];
+            let isKeyInQuery = authMethod["isKeyInQuery"];
+            if(isKeyInHeader){
+                await setApiKeyToObject(headers, authMethod["keyParamName"], configuration);
+            }else if(isKeyInQuery){
+                await setApiKeyToObject(query, authMethod["keyParamName"], configuration);
+            }
+        }
+        let isBasicBasic = authMethod["isBasicBasic"];
+        if(isBasicBasic){
+            await setBasicAuthToObject(requestOptions, configuration);
+        }
+        let isBasicBearer = authMethod["isBasicBearer"];
+        if(isBasicBearer){
+            await setBearerAuthToObject(headers, configuration);
+        }
+        let isOAuth = authMethod["isOAuth"];
+        if(isOAuth){
+            await setOAuthToObject(headers, authMethod["name"], authMethod["scopes"], configuration);
+        }
+    }  
+
+    for(let i = 0; i < queryParams.length; i++) {
+        if(testData[queryParams[i]["baseName"]] === ""){
+            continue;
+        }
+        let isArray = queryParams[i]["isArray"];
+        let isDateTime = queryParams[i]["isDateTime"];
+        let isDate = queryParams[i]["isDate"];
+        let isEnum = queryParams[i]["isEnum"];
+        let isEnumRef = queryParams[i]["isEnumRef"];
+        let isPrimitiveType = queryParams[i]["isPrimitiveType"];
+
+        let isCollectionFormatMulti = queryParams[i]["isCollectionFormatMulti"];
+        let uniqueItems = queryParams[i]["uniqueItems"];
+        if(isArray){
+            if(isCollectionFormatMulti){
+                if(uniqueItems){
+                    query[queryParams[i]["baseName"]] = Array.from(testData[queryParams[i]["baseName"]]);
+                }else{
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
+                }
+            }else{
+                if(uniqueItems){
+                    query[queryParams[i]["baseName"]] = Array.from(testData[queryParams[i]["baseName"]]).join(queryParams[i]["collectionFormat"]);
+                }else{
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]].join(queryParams[i]["collectionFormat"]);
+                }
+            }
+        } else {
+            let isExplode = queryParams[i]["isExplode"];
+            if(isDateTime){
+                query[queryParams[i]["baseName"]] = (testData[queryParams[i]["baseName"]] instanceof Date) ? (testData[queryParams[i]["baseName"]] as any).toISOString() : testData[queryParams[i]["baseName"]];
+            }else if(isDate){
+                query[queryParams[i]["baseName"]] = (testData[queryParams[i]["baseName"]] instanceof Date) ? (testData[queryParams[i]["baseName"]] as any).toISOString().substring(0,10) : testData[queryParams[i]["baseName"]];
+            } else if(isExplode){
+                if(isPrimitiveType){
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
+                }else if(isEnum || isEnumRef){
+                    query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
+                } else {
+                    for (const [key, value] of Object.entries(testData[queryParams[i]["baseName"]])) {
+                        query[key] = value;
+                    }
+                }
+            } else {
+                query[queryParams[i]["baseName"]] = testData[queryParams[i]["baseName"]];
+            }
+        }
+    }  
+
+    for(let i = 0; i < headerParams.length; i++) {
+        if(testData[headerParams[i]["baseName"]] === ""){
+            continue;
+        }
+        let isArray = headerParams[i]["isArray"];
+        if(isArray){
+            if(testData[headerParams[i]["baseName"]]){
+                let uniqueItems = headerParams[i]["uniqueItems"];
+                let dataType = headerParams[i]["dataType"];
+                let mapped;
+                if(uniqueItems){
+                    mapped = Array.from(testData[headerParams[i]["baseName"]]).map(value => (<any>dataType !== "Set<string>") ? JSON.stringify(value) : (value || ""));
+                }else{
+                    mapped = testData[headerParams[i]["baseName"]].map(value => (<any>dataType !== "Array<string>") ? JSON.stringify(value) : (value || ""));
+                }
+                headers[headerParams[i]["baseName"]] = mapped.join(headerParams[i]["collectionFormat"]);
+            }
+        } else {
+            if(testData[headerParams[i]["baseName"]]){
+                if(headerParams[i]["isString"]){
+                    headers[headerParams[i]["baseName"]] = String(testData[headerParams[i]["baseName"]]);
+                } else {
+                    headers[headerParams[i]["baseName"]] = typeof testData[headerParams[i]["baseName"]] === 'string'
+                        ? testData[headerParams[i]["baseName"]]
+                        : JSON.stringify(testData[headerParams[i]["baseName"]]);
+                }
+            }
+        
+        }
+    }
+        
+    for(let i = 0; i < formParams.length; i++) {
+        if(testData[formParams[i]["baseName"]] === ""){
+            continue;
+        }
+        let isArray = formParams[i]["isArray"];
+        if(testData[formParams[i]["baseName"]]){
+            if(isArray){
+                let isCollectionFormatMulti = formParams[i]["isCollectionFormatMulti"];
+                let multipartFormData = formParams[i]["multipartFormData"];
+                if(isCollectionFormatMulti){
+                    testData[formParams[i]["baseName"]].forEach((element) => {
+                        if(multipartFormData){
+                            formData.append(formParams[i]["baseName"], element as any);
+                        }else{
+                            formData.set(formParams[i]["baseName"], element as any);
+                        }
+                    });
+                }else {
+                    if(multipartFormData){
+                        formData.append(formParams[i]["baseName"], testData[formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
+                    }else{
+                        formData.set(formParams[i]["baseName"], testData[formParams[i]["baseName"]].join(formParams[i]["collectionFormat"]));
+                    }
+                }
+            }else{
+                let data = testData[formParams[i]["baseName"]];
+                let multipartFormData = formParams[i]["multipartFormData"];
+                if(multipartFormData){
+                    let isPrimitiveType = formParams[i]["isPrimitiveType"];
+                    let isEnum = formParams[i]["isEnum"];
+                    let isEnumRef = formParams[i]["isEnumRef"];
+                    if(!isPrimitiveType && !isEnum && !isEnumRef){
+                        data = new Blob([JSON.stringify(data)], { type: "application/json" });
+                    }
+                    formData.append(formParams[i]["baseName"], data as any);
+                }else{
+                    formData.set(formParams[i]["baseName"], data as any);
+                }
+            }
+        }
+    }
+
+    if(hasFormParams){
+        if(multipartFormData){
+            headers["Content-Type"] = "multipart/form-data";
+        }else{
+            headers["Content-Type"] = "application/x-www-form-urlencoded";
+        }
+    }
+
+    if(bodyParams && bodyParams.length > 0){
+        let bodyParam = bodyParams[0];
+        let mediaType = bodyParam["mediaType"];
+        if(mediaType){
+            headers["Content-Type"] = mediaType;
+        }else{
+            headers["Content-Type"] = "application/json";
+        }
+    }
+
+    setSearchParams(uri, query);
+        
+    let headersFromBaseOptions = baseOptions && baseOptions.headers ? baseOptions.headers : {};
+    let formDataHeaders = {};
+    if(hasFormParams && multipartFormData){
+        formDataHeaders = formData.getHeaders?.();
+    }
+    requestOptions.headers = {...headers, ...headersFromBaseOptions, ...formDataHeaders};
+
+    
+    if(hasFormParams){
+        if(multipartFormData){
+            requestOptions.data = formData;
+        }else{
+            requestOptions.data = formData.toString();
+        }
+    }
+
+    if(bodyParams && bodyParams.length > 0){
+        let bodyParam = bodyParams[0];
+        if(testData[bodyParam["baseName"]] !== ""){
+            requestOptions.data = serializeDataIfNeeded(testData[bodyParam["baseName"]], requestOptions, configuration);
+        }else{
+            requestOptions.data = null;
+        }
+    }
+
+    let axiosArgs = {
+        url: uri.toString(),
+        options: requestOptions,
     };
+        
+    // override headers from apiTestConfig
+    if(apiTestConfig?.headers){
+        for(let key in apiTestConfig?.headers){
+            if(typeof apiTestConfig?.headers[key] === "function"){
+                requestOptions.headers[key] = apiTestConfig?.headers[key]();
+            }else{
+                requestOptions.headers[key] = apiTestConfig?.headers[key];
+            }
+        }
+    }
+    const axiosRequestArgs = {...axiosArgs.options, url: axiosArgs.url};
+
+    return axiosRequestArgs;
+}
+
+export const sendRequest = async (axiosRequestArgs: any) => {
+        try {
+            let response = await globalAxios.request(axiosRequestArgs);
+            return response;
+        } catch(error) {
+            let errorResponse = error.response;
+            return errorResponse;
+        }
+}
+
+export const addTestResultAttachments = (operationId:string, test:any, testCase: any, response: any, apiSpecJSON:any, isValid:any) => {
+    let data = TestDataWithAllParams[operationId];//["scenarios"][scenarioIndex];
+    let path = data["path"];
+    let method = data["httpMethod"];
+    let apiPath = "["+method+"]"+path;
+    
+    test.info().attachments.push({
+        name: "ApiPath",
+        contentType: applicationJson,
+        body: Buffer.from(apiPath)
+    });
+    
+    test.info().attachments.push({
+        name: "OperationId",
+        contentType: applicationJson,
+        body: Buffer.from('cartGet')
+    });
+
+    test.info().attachments.push({
+        name: "Request",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(testCase['request']))
+    });
+
+    test.info().attachments.push({
+        name: "Response",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(response.data))
+    });
+
+    test.info().attachments.push({
+        name: "Response Code",
+        contentType: applicationJson,
+        body: Buffer.from(response.status.toString())
+    });
+
+    test.info().attachments.push({
+        name: "Expected Response Code",
+        contentType: applicationJson,
+        body: Buffer.from(testCase["response"]["statusCode"].toString())
+    });
+
+    test.info().attachments.push({
+        name: "Summary",
+        contentType: applicationJson,
+        body: Buffer.from(testCase["summary"])
+    });
+
+    test.info().attachments.push({
+        name: "Swagger",
+        contentType: applicationJson,
+        body: Buffer.from(JSON.stringify(apiSpecJSON))
+    });
+    
+    test.info().attachments.push({
+        name: "IsValid",
+        contentType: applicationJson,
+        body: Buffer.from(isValid.toString())
+    });
+}
+
+export const addSchemaValidationErrorsToAttachments = (test:any, errors: string[]) => {
+    test.info().attachments.push({
+        name: "SchemaValidationErrors",
+        contentType: applicationJson,
+        body: Buffer.from(errors.join("\n"))
+    });
 }

@@ -33,6 +33,8 @@ import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.comparator.PathFileComparator;
 import org.apache.commons.lang3.ObjectUtils;
 import org.apache.commons.lang3.StringUtils;
+import org.apitest.scenarios.codegen.APITestScenario;
+import org.apitest.scenarios.codegen.TestScenario;
 import org.openapitools.codegen.api.TemplateDefinition;
 import org.openapitools.codegen.api.TemplatePathLocator;
 import org.openapitools.codegen.api.TemplateProcessor;
@@ -292,7 +294,9 @@ public class DefaultGenerator implements Generator {
         // set OpenAPI to make these available to all methods
         config.setOpenAPI(openAPI);
 
-        config.additionalProperties().put("generatorVersion", ImplementationVersion.read());
+        if (!config.additionalProperties().containsKey("generatorVersion")) {
+            config.additionalProperties().put("generatorVersion", ImplementationVersion.read());
+        }
         config.additionalProperties().put("generatedDate", ZonedDateTime.now().toString());
         config.additionalProperties().put("generatedYear", String.valueOf(ZonedDateTime.now().getYear()));
         config.additionalProperties().put("generatorClass", config.getClass().getName());
@@ -508,22 +512,22 @@ public class DefaultGenerator implements Generator {
 
                 Schema schema = schemas.get(name);
 
-                if (ModelUtils.isFreeFormObject(schema)) { // check to see if it's a free-form object
+                if (schema.getExtensions() != null && Boolean.TRUE.equals(schema.getExtensions().get("x-internal"))) {
+                    LOGGER.info("Model {} not generated since x-internal is set to true", name);
+                    continue;
+                } else if (ModelUtils.isFreeFormObject(schema)) { // check to see if it's a free-form object
                     if (!ModelUtils.shouldGenerateFreeFormObjectModel(name, config)) {
                         LOGGER.info("Model {} not generated since it's a free-form object", name);
                         continue;
                     }
                 } else if (ModelUtils.isMapSchema(schema)) { // check to see if it's a "map" model
-                    // A composed schema (allOf, oneOf, anyOf) is considered a Map schema if the additionalproperties attribute is set
-                    // for that composed schema. However, in the case of a composed schema, the properties are defined or referenced
-                    // in the inner schemas, and the outer schema does not have properties.
-                    if (!ModelUtils.isGenerateAliasAsModel(schema) && !ModelUtils.isComposedSchema(schema) && (schema.getProperties() == null || schema.getProperties().isEmpty())) {
+                    if (!ModelUtils.shouldGenerateMapModel(schema)) {
                         // schema without property, i.e. alias to map
                         LOGGER.info("Model {} not generated since it's an alias to map (without property) and `generateAliasAsModel` is set to false (default)", name);
                         continue;
                     }
                 } else if (ModelUtils.isArraySchema(schema)) { // check to see if it's an "array" model
-                    if (!ModelUtils.isGenerateAliasAsModel(schema) && (schema.getProperties() == null || schema.getProperties().isEmpty())) {
+                    if (!ModelUtils.shouldGenerateArrayModel(schema)) {
                         // schema without property, i.e. alias to array
                         LOGGER.info("Model {} not generated since it's an alias to array (without property) and `generateAliasAsModel` is set to false (default)", name);
                         continue;
@@ -1492,31 +1496,36 @@ public class DefaultGenerator implements Generator {
         final List<SecurityRequirement> globalSecurities = openAPI.getSecurity();
         for (Tag tag : tags) {
             try {
-                CodegenOperation codegenOperation = config.fromOperation(resourcePath, httpMethod, operation, path.getServers());
-                codegenOperation.tags = new ArrayList<>(tags);
-                config.addOperationToGroup(config.sanitizeTag(tag.getName()), resourcePath, operation, codegenOperation, operations);
-
-                List<SecurityRequirement> securities = operation.getSecurity();
-                if (securities != null && securities.isEmpty()) {
-                    continue;
-                }
-
-                Map<String, SecurityScheme> authMethods = getAuthMethods(securities, securitySchemes);
-
-                if (authMethods != null && !authMethods.isEmpty()) {
-                    List<CodegenSecurity> fullAuthMethods = config.fromSecurity(authMethods);
-                    codegenOperation.authMethods = filterAuthMethods(fullAuthMethods, securities);
-                    codegenOperation.hasAuthMethods = true;
+                if (operation.getExtensions() != null && Boolean.TRUE.equals(operation.getExtensions().get("x-internal"))) {
+                    // skip operation if x-internal sets to true
+                    LOGGER.info("Operation ({} {} - {}) not generated since x-internal is set to true",
+                            httpMethod, resourcePath, operation.getOperationId());
                 } else {
-                    authMethods = getAuthMethods(globalSecurities, securitySchemes);
+                    CodegenOperation codegenOperation = config.fromOperation(resourcePath, httpMethod, operation, path.getServers());
+                    codegenOperation.tags = new ArrayList<>(tags);
+                    config.addOperationToGroup(config.sanitizeTag(tag.getName()), resourcePath, operation, codegenOperation, operations);
+
+                    List<SecurityRequirement> securities = operation.getSecurity();
+                    if (securities != null && securities.isEmpty()) {
+                        continue;
+                    }
+
+                    Map<String, SecurityScheme> authMethods = getAuthMethods(securities, securitySchemes);
 
                     if (authMethods != null && !authMethods.isEmpty()) {
                         List<CodegenSecurity> fullAuthMethods = config.fromSecurity(authMethods);
-                        codegenOperation.authMethods = filterAuthMethods(fullAuthMethods, globalSecurities);
+                        codegenOperation.authMethods = filterAuthMethods(fullAuthMethods, securities);
                         codegenOperation.hasAuthMethods = true;
+                    } else {
+                        authMethods = getAuthMethods(globalSecurities, securitySchemes);
+
+                        if (authMethods != null && !authMethods.isEmpty()) {
+                            List<CodegenSecurity> fullAuthMethods = config.fromSecurity(authMethods);
+                            codegenOperation.authMethods = filterAuthMethods(fullAuthMethods, globalSecurities);
+                            codegenOperation.hasAuthMethods = true;
+                        }
                     }
                 }
-
             } catch (Exception ex) {
                 String msg = "Could not process operation:\n" //
                         + "  Tag: " + tag + "\n"//
@@ -1527,7 +1536,6 @@ public class DefaultGenerator implements Generator {
                 throw new RuntimeException(msg, ex);
             }
         }
-
     }
 
     private static String generateParameterId(Parameter parameter) {
@@ -1860,7 +1868,7 @@ public class DefaultGenerator implements Generator {
         if (generateMetadata) {
             File versionMetadataFile = new File(versionMetadata);
             try {
-                File written = this.templateProcessor.writeToFile(versionMetadata, ImplementationVersion.read().getBytes(StandardCharsets.UTF_8));
+                File written = this.templateProcessor.writeToFile(versionMetadata, (ImplementationVersion.read() + "\n").getBytes(StandardCharsets.UTF_8));
                 if (written != null) {
                     files.add(versionMetadataFile);
                     if (config.isEnablePostProcessFile() && !dryRun) {

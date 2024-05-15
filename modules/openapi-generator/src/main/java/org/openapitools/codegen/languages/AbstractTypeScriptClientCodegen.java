@@ -342,8 +342,8 @@ public abstract class AbstractTypeScriptClientCodegen extends DefaultCodegen imp
         typeMapping.put("integer", "number");
         typeMapping.put("Map", "any");
         typeMapping.put("map", "any");
-        typeMapping.put("date", "string");
-        typeMapping.put("DateTime", "string");
+        typeMapping.put("date", "Date");
+        typeMapping.put("DateTime", "Date");
         typeMapping.put("binary", "any");
         typeMapping.put("File", "any");
         typeMapping.put("file", "any");
@@ -888,6 +888,10 @@ public abstract class AbstractTypeScriptClientCodegen extends DefaultCodegen imp
 
     @Override
     public String toEnumVarName(String name, String datatype) {
+        if (enumNameMapping.containsKey(name)) {
+            return enumNameMapping.get(name);
+        }
+
         if (name.length() == 0) {
             return getNameUsingEnumPropertyNaming("empty");
         }

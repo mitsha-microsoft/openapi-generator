@@ -1,0 +1,76 @@
+import { test, expect } from '@playwright/test';
+import { createRequest, sendRequest, addTestResultAttachments, addSchemaValidationErrorsToAttachments } from '../.lib/common';
+import * as testData from "./data/{{testDataFileNameWithoutExt}}.json";
+import { SwaggerValidator } from '../.lib/schemaValidator.ts';
+
+let swaggerPath = __dirname + '/../../swagger.json'
+let validator = new SwaggerValidator(swaggerPath);
+
+let ApiSpecJSON = validator.getSwagger();
+
+{{#operations}}
+{{#operation}}
+// {{summary}}
+test.describe('Valid cases', function() {
+    let validTestCases: any[] = testData["{{operationId}}"].filter(testCase => testCase["isValid"]);
+    validTestCases.map(testCase => {
+        test(testCase["summary"], async() => {
+
+			// create request with test case data
+            let request = await createRequest('{{operationId}}', '0', testCase["request"]);
+
+			// send request
+            let response = await sendRequest(request);
+            
+            // add test case info to test result attachments
+            addTestResultAttachments('{{operationId}}',test, testCase, response, ApiSpecJSON, "true");            
+            
+            // validate response code
+            expect(response.status).toBe(testCase["response"]["statusCode"]);
+
+            // validate response schema
+            let validationErrors = validator.validateAgainstDefinition('{{returnType}}', response.data);
+            let errors: string[] = []
+            validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            
+            // adding schema validation errors to attachments
+            addSchemaValidationErrorsToAttachments(test, validationErrors.errors.map(e => e.message));
+            
+            expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+            
+        });
+    });
+});
+
+test.describe('Error handling cases', function() {
+    let invalidTestCases: any[] = testData["{{operationId}}"].filter(testCase => !testCase["isValid"]);
+    invalidTestCases.map(testCase => {
+        test(testCase["summary"], async() => {
+
+			// create request with test case data
+            let request = await createRequest('{{operationId}}', '0', testCase["request"]);
+
+			// send request
+            let response = await sendRequest(request);
+            
+            // add test case info to test result attachments            
+            addTestResultAttachments('{{operationId}}', test, testCase, response, ApiSpecJSON, "false");            
+            
+            // validate response code           
+            expect(response.status).toBe(testCase["response"]["statusCode"]);
+            
+            // validate response schema
+            let validationErrors = validator.validateAgainstDefinition('{{responseSchema400}}', response.data);
+            let errors: string[] = []
+            validationErrors.errors.forEach(error => errors.push(error.message + ", at path: " + error.path + "."));
+            
+            // adding schema validation errors to attachments
+            addSchemaValidationErrorsToAttachments(test, validationErrors.errors.map(e => e.message));
+            
+            expect(errors.length, "Response Validation Failed.\n" + errors.join("\n")).toBe(0);
+            
+        });
+    });
+});
+{{/operation}}
+{{/operations}}

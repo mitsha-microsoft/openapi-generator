@@ -8,7 +8,7 @@ import os
 import time
 import unittest
 
-from pydantic import ValidationError
+from pydantic import ValidationError, SecretStr, BaseModel, StrictStr, Field
 import pytest
 
 import petstore_api
@@ -342,6 +342,10 @@ class ModelTests(unittest.TestCase):
         self.assertEqual(dog2.breed, 'bulldog')
         self.assertEqual(dog2.class_name, "dog")
         self.assertEqual(dog2.color, 'white')
+    
+    def test_inheritance_discriminators(self):
+        model = petstore_api.DiscriminatorAllOfSuper.from_dict({"elementType": "DiscriminatorAllOfSub"})
+        self.assertIsInstance(model, petstore_api.DiscriminatorAllOfSub)
 
     def test_list(self):
         # should throw exception as var_123_list should be string
@@ -403,8 +407,16 @@ class ModelTests(unittest.TestCase):
         a.pattern_with_digits_and_delimiter = "image_123"
         self.assertEqual(a.pattern_with_digits_and_delimiter, "image_123")
 
-        # test sanitize for serializaation with SecretStr (format: password)
+        # test sanitize for serialization with different data types
         self.assertEquals(petstore_api.ApiClient().sanitize_for_serialization(a), {'byte': b'string', 'date': '2013-09-17', 'number': 123.45, 'password': 'testing09876', 'pattern_with_digits_and_delimiter': 'image_123'})
+
+        # test sanitize for serialization with SecretStr (format: password)
+        class LoginTest(BaseModel):
+            username: StrictStr = Field(min_length=2, strict=True, max_length=64)
+            password: SecretStr
+        
+        l = LoginTest(username="admin", password=SecretStr("testing09876"))
+        self.assertEqual(petstore_api.ApiClient().sanitize_for_serialization(l), {'username': "admin", 'password': "testing09876"})
 
     def test_inline_enum_validator(self):
         self.pet = petstore_api.Pet(name="test name", photoUrls=["string"])

@@ -927,17 +927,14 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                 // if super class
                 if (model.getDiscriminator() != null && model.getDiscriminator().getMappedModels() != null) {
                     moduleImports.add("typing", "Union");
-                    Set<CodegenDiscriminator.MappedModel> discriminator = model.getDiscriminator().getMappedModels();
-                    for (CodegenDiscriminator.MappedModel mappedModel : discriminator) {
-                        postponedModelImports.add(mappedModel.getModelName());
-                    }
+                    moduleImports.add("importlib", "import_module");
                 }
             }
 
             if (!model.allOf.isEmpty()) { // allOf
                 for (CodegenProperty cp : model.allVars) {
                     if (!cp.isPrimitiveType || cp.isModel) {
-                        if (cp.isArray){ // if array
+                        if (cp.isArray || cp.isMap){ // if array or map
                             modelImports.add(cp.items.dataType);
                         }else{ // if model
                             modelImports.add(cp.getDataType());
@@ -956,6 +953,10 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                 }
             }
 
+            // if pydantic model
+            if (!model.isEnum) {
+                moduleImports.add("pydantic", "ConfigDict");
+            }
 
             //loop through properties/schemas to set up typing, pydantic
             for (CodegenProperty cp : codegenProperties) {
@@ -1055,8 +1056,8 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                                    Set<String> exampleImports,
                                    Set<String> postponedModelImports,
                                    Set<String> postponedExampleImports,
+                                   PythonImports moduleImports,
                                    String classname) {
-        PythonImports moduleImports = new PythonImports();
         PydanticType pt = new PydanticType(
             modelImports,
             exampleImports,
@@ -1244,11 +1245,12 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
             if (!StringUtils.isEmpty(operation.returnType)) {
                 // Not interested in the result, only in the update of the imports
                 getPydanticType(
-                    operation.returnProperty, 
+                    operation.returnProperty,
                     modelImports,
-                    exampleImports, 
+                    exampleImports,
                     postponedModelImports,
-                    postponedExampleImports, 
+                    postponedExampleImports,
+                    moduleImports,
                     null
                 );
             }
@@ -1271,7 +1273,7 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                 }
                 operation.vendorExtensions.put("x-py-example-import", imports);
             }
-            
+
             // Remove constant params from allParams list and add to constantParams
             handleConstantParams(operation);
         }
@@ -2061,7 +2063,7 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                         values.add((String) enumVar.get("value"));
                     }
                 }
-                return String.format(Locale.ROOT, "%sEnum", cp.nameInCamelCase);
+                return String.format(Locale.ROOT, "%sEnum", cp.nameInPascalCase);
             } else*/
 
             if (result == null) {
@@ -2170,7 +2172,7 @@ public abstract class AbstractPythonCodegen extends DefaultCodegen implements Co
                         // TODO process the first one only at the moment
                         if (cmt != null)
                             // TODO: don't loop back to the deprecated getPydanticType method
-                            return getPydanticType(cmt.getSchema(), modelImports, exampleImports, postponedModelImports, postponedExampleImports, classname);
+                            return getPydanticType(cmt.getSchema(), modelImports, exampleImports, postponedModelImports, postponedExampleImports, moduleImports, classname);
                     }
                     throw new RuntimeException("Error! Failed to process getPydanticType when getting the content: " + cp);
                 } else {

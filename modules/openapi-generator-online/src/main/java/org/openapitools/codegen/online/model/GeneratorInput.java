@@ -21,6 +21,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.annotations.ApiModelProperty;
 import io.swagger.v3.parser.core.models.AuthorizationValue;
 
+import java.util.List;
 import java.util.Map;
 
 public class GeneratorInput {
@@ -28,6 +29,10 @@ public class GeneratorInput {
     private Map<String, String> options;
     private String openAPIUrl;
     private AuthorizationValue authorizationValue;
+    private Map<String, Object> configuration; // custom configuration
+    private List<String> requiredOperationIds;
+    private String exampleJSON;
+    private String useLLM;
 
     public AuthorizationValue getAuthorizationValue() {
         return authorizationValue;
@@ -61,4 +66,38 @@ public class GeneratorInput {
     public void setOpenAPIUrl(String url) {
         this.openAPIUrl = url;
     }
+    
+    // getter
+    public Map<String, Object> getConfiguration() {
+		return configuration;
+	}
+
+	// setter
+	public void setConfiguration(Map<String, Object> configuration) {
+		this.configuration = configuration;
+	}
+	
+	public List<String> getRequiredOperationIds() {
+		return requiredOperationIds;
+	}
+	
+	public void setRequiredOperationIds(List<String> requiredOperationIds) {
+		this.requiredOperationIds = requiredOperationIds;
+	}
+	
+	public void setExampleJSON(String exampleJSON) {
+		this.exampleJSON = exampleJSON;
+	}
+	
+	public String getExampleJSON() {
+		return exampleJSON;
+	}
+	
+	public String getUseLLM() {
+        return useLLM;
+    }
+	
+	public void setUseLLM(String useLLM) {
+		this.useLLM = useLLM;
+	}
 }

@@ -22,6 +22,8 @@ import io.swagger.v3.oas.models.tags.Tag;
 
 import java.util.*;
 
+import org.apitest.scenarios.codegen.TestScenario;
+
 public class CodegenOperation {
     public final List<CodegenProperty> responseHeaders = new ArrayList<CodegenProperty>();
     public boolean hasAuthMethods, hasConsumes, hasProduces, hasParams, hasOptionalParams, hasRequiredParams,
@@ -52,6 +54,9 @@ public class CodegenOperation {
     public List<CodegenParameter> optionalParams = new ArrayList<CodegenParameter>();
     public List<CodegenParameter> requiredAndNotNullableParams = new ArrayList<CodegenParameter>();
     public List<CodegenParameter> notNullableParams = new ArrayList<CodegenParameter>();
+    public List<CodegenParameter> primitiveParams = new ArrayList<CodegenParameter>();
+    public List<CodegenParameter> nonPrimitivesParams = new ArrayList<CodegenParameter>();
+    
     public List<CodegenSecurity> authMethods;
     public List<Tag> tags;
     public List<CodegenResponse> responses = new ArrayList<CodegenResponse>();
@@ -66,7 +71,10 @@ public class CodegenOperation {
     public String operationIdLowerCase; // for markdown documentation
     public String operationIdCamelCase; // for class names
     public String operationIdSnakeCase;
-
+    public List<Object> scenarios;
+    public String  jsonSchema;
+    public String responseSchema400;
+    
     /**
      * Check if there's at least one parameter
      *
@@ -306,8 +314,18 @@ public class CodegenOperation {
     public boolean isRestful() {
         return isRestfulIndex() || isRestfulShow() || isRestfulCreate() || isRestfulUpdate() || isRestfulDestroy();
     }
+    
+    
 
-    /**
+    public List<Object> getScenarios() {
+		return scenarios;
+	}
+
+	public void setScenarios(List<Object> scenarios) {
+		this.scenarios = scenarios;
+	}
+
+	/**
      * Get the substring except baseName from path
      *
      * @return the substring
@@ -347,7 +365,7 @@ public class CodegenOperation {
         sb.append(", isVoid=").append(isVoid);
         sb.append(", isResponseBinary=").append(isResponseBinary);
         sb.append(", isResponseFile=").append(isResponseFile);
-        sb.append(", isResponseFile=").append(isResponseOptional);
+        sb.append(", isResponseOptional=").append(isResponseOptional);
         sb.append(", hasReference=").append(hasReference);
         sb.append(", hasDefaultResponse=").append(hasDefaultResponse);
         sb.append(", hasErrorResponseObject=").append(hasErrorResponseObject);

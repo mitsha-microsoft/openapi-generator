@@ -158,6 +158,8 @@ public interface CodegenConfig {
 
     Map<String, String> enumNameMapping();
 
+    Map<String, String> operationIdNameMapping();
+
     Map<String, String> openapiNormalizer();
 
     Map<String, String> apiTemplateFiles();
@@ -238,7 +240,13 @@ public interface CodegenConfig {
 
     String apiTestFilename(String templateName, String tag);
 
+    String apiTestFilenameBasedOnOperation(String templateName, String tag, String method);
+
+    String apiTestDataFilenameBasedOnOperation(String templateName, String tag, String method);
+
     String apiDocFilename(String templateName, String tag);
+    
+    String toApiOperationName(String tag, String method);
 
     boolean shouldOverwrite(String filename);
 
@@ -347,6 +355,8 @@ public interface CodegenConfig {
     For python 3.9.0, generatorLanguageVersion would be "3.9.0"
     */
     String generatorLanguageVersion();
+
+    boolean isTypeErasedGenerics();
 
     List<VendorExtension> getSupportedVendorExtensions();
 

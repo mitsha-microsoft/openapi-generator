@@ -1,0 +1,23 @@
+import path from 'path';
+import {v4 as uuidv4} from 'uuid';
+import dotenv from 'dotenv';
+dotenv.config();
+
+export const apiTestConfig : any= {
+    swaggerSpec : path.join(__dirname, 'swagger.json'),
+    basePath: 'https://d0fb022f-8217-4480-bcfd-05633f371ed1.eastus.cnt-prod.loadtesting.azure.com',
+    headers: {
+        "requestId" : uuidv4,
+        "Authorization": process.env.TOKEN
+    },
+    parameters: {
+        "api-version" : "2022-11-01"
+    },
+    auth : {
+        scheme: "bearer",
+        token: process.env.TOKEN
+    },
+    operationHirerarchy: {
+
+    }
+}
